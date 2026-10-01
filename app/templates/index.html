@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Home - FlaskApp{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Welcome to FlaskApp</h1>
+  <p>A clean, minimal Flask web application starter.</p>
+  <a href="{{ url_for('main.register') }}" class="btn btn-primary">Get Started</a>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Register - FlaskApp{% endblock %}
+
+{% block content %}
+<section class="form-page">
+  <h1>Register</h1>
+  <form method="POST" action="{{ url_for('main.register') }}">
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required placeholder="johndoe" />
+    </div>
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required placeholder="you@example.com" />
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required placeholder="••••••••" />
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+  </form>
+  <p>Already have an account? <a href="{{ url_for('main.login') }}">Login</a></p>
+</section>
+{% endblock %}
