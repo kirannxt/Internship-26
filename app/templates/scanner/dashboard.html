@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · PhishGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-desc">Welcome back, <strong>{{ current_user.username }}</strong>.
+      Here's your scanning overview.</p>
+  </div>
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">
+    <span aria-hidden="true">🔍</span> Scan a URL
+  </a>
+</div>
+
+{# ── Summary cards ── #}
+<section class="summary-grid" aria-label="Scan statistics">
+
+  <div class="summary-card summary-card--total">
+    <div class="summary-card__icon" aria-hidden="true">📊</div>
+    <div class="summary-card__body">
+      <span class="summary-card__label">Total Scans</span>
+      <span class="summary-card__value">{{ stats.total }}</span>
+    </div>
+  </div>
+
+  <div class="summary-card summary-card--safe">
+    <div class="summary-card__icon" aria-hidden="true">✅</div>
+    <div class="summary-card__body">
+      <span class="summary-card__label">Safe</span>
+      <span class="summary-card__value">{{ stats.safe }}</span>
+    </div>
+  </div>
+
+  <div class="summary-card summary-card--suspicious">
+    <div class="summary-card__icon" aria-hidden="true">⚠️</div>
+    <div class="summary-card__body">
+      <span class="summary-card__label">Suspicious</span>
+      <span class="summary-card__value">{{ stats.suspicious }}</span>
+    </div>
+  </div>
+
+  <div class="summary-card summary-card--malicious">
+    <div class="summary-card__icon" aria-hidden="true">🚨</div>
+    <div class="summary-card__body">
+      <span class="summary-card__label">Malicious</span>
+      <span class="summary-card__value">{{ stats.malicious }}</span>
+    </div>
+  </div>
+
+</section>
+
+{# ── Recent scans ── #}
+<section class="recent-section">
+  <div class="section-header">
+    <h2 class="section-title">Recent Scans</h2>
+    {% if recent_scans %}
+    <a href="{{ url_for('scanner.history') }}" class="link-subtle">View all →</a>
+    {% endif %}
+  </div>
+
+  {% if recent_scans %}
+  <div class="scan-list" role="list">
+    {% for scan in recent_scans %}
+    <div class="scan-list-item" role="listitem">
+      <div class="scan-list-item__url" title="{{ scan.url }}">
+        <span class="scan-list-item__url-text">{{ scan.url | truncate(60) }}</span>
+      </div>
+      <div class="scan-list-item__meta">
+        {% set badge_map = {'safe': ('badge--safe', '✓ Safe'),
+                            'suspicious': ('badge--suspicious', '⚠ Suspicious'),
+                            'malicious': ('badge--malicious', '✕ Malicious')} %}
+        {% set badge_cls, badge_label = badge_map.get(scan.prediction, ('badge--unknown', 'Unknown')) %}
+        <span class="status-badge {{ badge_cls }}" aria-label="Result: {{ badge_label }}">
+          {{ badge_label }}
+        </span>
+        <span class="scan-list-item__time">{{ scan.scanned_at.strftime('%b %d, %H:%M') }}</span>
+        <a href="{{ url_for('scanner.result', scan_id=scan.id) }}"
+           class="btn btn-ghost btn-sm" aria-label="View result for {{ scan.url }}">View</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  {# ── Empty state ── #}
+  <div class="empty-state">
+    <div class="empty-state__icon" aria-hidden="true">🔍</div>
+    <h3 class="empty-state__title">No scans yet</h3>
+    <p class="empty-state__desc">Submit your first URL to see results here.</p>
+    <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">Scan your first URL</a>
+  </div>
+  {% endif %}
+
+</section>
+{% endblock %}

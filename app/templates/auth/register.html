@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Create Account · PhishGuard{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card">
+
+    <div class="auth-header">
+      <span class="auth-logo" aria-hidden="true">🛡️</span>
+      <h1 class="auth-title">PhishGuard</h1>
+      <p class="auth-subtitle">Create your account</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      {# Username #}
+      <div class="form-field">
+        <label class="form-label" for="username">Username</label>
+        <input
+          class="form-input {% if errors.username %}input-error{% endif %}"
+          type="text"
+          id="username"
+          name="username"
+          value="{{ form_data.get('username', '') }}"
+          autocomplete="username"
+          required
+          placeholder="johndoe"
+        />
+        {% if errors.username %}
+        <span class="form-error" role="alert">{{ errors.username }}</span>
+        {% endif %}
+      </div>
+
+      {# Email #}
+      <div class="form-field">
+        <label class="form-label" for="email">Email</label>
+        <input
+          class="form-input {% if errors.email %}input-error{% endif %}"
+          type="email"
+          id="email"
+          name="email"
+          value="{{ form_data.get('email', '') }}"
+          autocomplete="email"
+          required
+          placeholder="you@example.com"
+        />
+        {% if errors.email %}
+        <span class="form-error" role="alert">{{ errors.email }}</span>
+        {% endif %}
+      </div>
+
+      {# Password #}
+      <div class="form-field">
+        <label class="form-label" for="password">Password
+          <span class="form-hint">(min 8 characters)</span>
+        </label>
+        <div class="input-wrapper">
+          <input
+            class="form-input {% if errors.password %}input-error{% endif %}"
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="new-password"
+            required
+            placeholder="••••••••"
+          />
+          <button type="button" class="input-toggle-pw" aria-label="Show/hide password"
+                  onclick="togglePassword('password', this)">
+            <span aria-hidden="true">👁</span>
+          </button>
+        </div>
+        {% if errors.password %}
+        <span class="form-error" role="alert">{{ errors.password }}</span>
+        {% endif %}
+      </div>
+
+      {# Confirm Password #}
+      <div class="form-field">
+        <label class="form-label" for="confirm_password">Confirm Password</label>
+        <div class="input-wrapper">
+          <input
+            class="form-input {% if errors.confirm_password %}input-error{% endif %}"
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            autocomplete="new-password"
+            required
+            placeholder="••••••••"
+          />
+          <button type="button" class="input-toggle-pw" aria-label="Show/hide password"
+                  onclick="togglePassword('confirm_password', this)">
+            <span aria-hidden="true">👁</span>
+          </button>
+        </div>
+        {% if errors.confirm_password %}
+        <span class="form-error" role="alert">{{ errors.confirm_password }}</span>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+    </form>
+
+    <p class="auth-footer-text">
+      Already have an account?
+      <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}

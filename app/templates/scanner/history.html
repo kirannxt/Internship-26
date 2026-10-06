@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Scan History · PhishGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Scan History</h1>
+    <p class="page-desc">All URL scans you have submitted.</p>
+  </div>
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">🔍 Scan a URL</a>
+</div>
+
+{% if scans %}
+<div class="scan-list scan-list--full" role="list">
+  {% for scan in scans %}
+  {% set pred = scan.prediction | lower %}
+  {% set badge_map = {'safe': ('badge--safe', '✓ Safe'),
+                      'suspicious': ('badge--suspicious', '⚠ Suspicious'),
+                      'malicious': ('badge--malicious', '✕ Malicious')} %}
+  {% set badge_cls, badge_label = badge_map.get(pred, ('badge--unknown', 'Unknown')) %}
+  <div class="scan-list-item" role="listitem">
+    <div class="scan-list-item__url" title="{{ scan.url }}">
+      <span class="scan-list-item__url-text">{{ scan.url | truncate(70) }}</span>
+    </div>
+    <div class="scan-list-item__meta">
+      <span class="status-badge {{ badge_cls }}" aria-label="Result: {{ badge_label }}">
+        {{ badge_label }}
+      </span>
+      {% if scan.probability is not none %}
+      <span class="scan-list-item__score">{{ "%.0f"|format(scan.probability * 100) }}%</span>
+      {% endif %}
+      <span class="scan-list-item__time">
+        <time datetime="{{ scan.scanned_at.isoformat() }}">
+          {{ scan.scanned_at.strftime('%b %d, %Y %H:%M') }}
+        </time>
+      </span>
+      <a href="{{ url_for('scanner.result', scan_id=scan.id) }}"
+         class="btn btn-ghost btn-sm">View</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-state__icon" aria-hidden="true">🔍</div>
+  <h3 class="empty-state__title">No scans yet</h3>
+  <p class="empty-state__desc">You haven't scanned any URLs. Start below.</p>
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">Scan your first URL</a>
+</div>
+{% endif %}
+
+{% endblock %}
