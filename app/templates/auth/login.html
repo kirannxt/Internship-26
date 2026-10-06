@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Sign In · PhishGuard{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card">
+
+    <div class="auth-header">
+      <span class="auth-logo" aria-hidden="true">🛡️</span>
+      <h1 class="auth-title">PhishGuard</h1>
+      <p class="auth-subtitle">Sign in to your account</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+      <span class="alert-icon" aria-hidden="true">✕</span>
+      <span class="alert-text">{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}" novalidate id="login-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="form-field">
+        <label class="form-label" for="identifier">Email or Username</label>
+        <input
+          class="form-input {% if error %}input-error{% endif %}"
+          type="text"
+          id="identifier"
+          name="identifier"
+          value="{{ request.form.get('identifier', '') }}"
+          autocomplete="username"
+          required
+          placeholder="you@example.com"
+          aria-describedby="identifier-hint"
+        />
+      </div>
+
+      <div class="form-field">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-wrapper">
+          <input
+            class="form-input {% if error %}input-error{% endif %}"
+            type="password"
+            id="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            placeholder="••••••••"
+          />
+          <button type="button" class="input-toggle-pw" aria-label="Show/hide password"
+                  onclick="togglePassword('password', this)">
+            <span aria-hidden="true">👁</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-field form-field--inline">
+        <label class="checkbox-label">
+          <input type="checkbox" name="remember" value="1" />
+          <span>Remember me</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+        <span class="btn-text">Sign In</span>
+        <span class="btn-loader hidden" aria-hidden="true"></span>
+      </button>
+    </form>
+
+    <p class="auth-footer-text">
+      Don't have an account?
+      <a href="{{ url_for('auth.register') }}">Create one</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("login-form").addEventListener("submit", function () {
+    const btn  = document.getElementById("login-btn");
+    const text = btn.querySelector(".btn-text");
+    const spin = btn.querySelector(".btn-loader");
+    btn.disabled = true;
+    text.textContent = "Signing in…";
+    spin.classList.remove("hidden");
+  });
+</script>
+{% endblock %}

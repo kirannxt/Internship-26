@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Scan Result · PhishGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Scan Result</h1>
+    <p class="page-desc">Detection analysis for the submitted URL.</p>
+  </div>
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">🔍 Scan Another URL</a>
+</div>
+
+{% if scan %}
+
+{# ── Prediction mapping ── #}
+{% set pred = scan.prediction | lower %}
+{% if pred == 'safe' %}
+  {% set result_class = 'result-card--safe' %}
+  {% set result_icon  = '✅' %}
+  {% set result_label = 'Safe' %}
+  {% set result_explanation = 'No significant phishing indicators were detected. This URL appears to be low risk. Always stay cautious when sharing personal information online.' %}
+{% elif pred == 'suspicious' %}
+  {% set result_class = 'result-card--suspicious' %}
+  {% set result_icon  = '⚠️' %}
+  {% set result_label = 'Suspicious' %}
+  {% set result_explanation = 'This URL has characteristics associated with phishing or deceptive content. Proceed with caution. Do not enter personal credentials or financial information.' %}
+{% elif pred == 'malicious' %}
+  {% set result_class = 'result-card--malicious' %}
+  {% set result_icon  = '🚨' %}
+  {% set result_label = 'Malicious' %}
+  {% set result_explanation = 'This URL has strong indicators of phishing or malicious intent. Avoid visiting this URL and do not share it with others.' %}
+{% else %}
+  {% set result_class = 'result-card--unknown' %}
+  {% set result_icon  = '❓' %}
+  {% set result_label = 'Unknown' %}
+  {% set result_explanation = 'The classification result was not recognised. Please try scanning again.' %}
+{% endif %}
+
+{# ── Result Card ── #}
+<div class="result-card {{ result_class }}" role="region" aria-label="Scan result: {{ result_label }}">
+
+  <div class="result-card__top">
+    <div class="result-card__icon" aria-hidden="true">{{ result_icon }}</div>
+    <div class="result-card__verdict">
+      <span class="status-badge status-badge--lg
+        {% if pred == 'safe' %}badge--safe
+        {% elif pred == 'suspicious' %}badge--suspicious
+        {% elif pred == 'malicious' %}badge--malicious
+        {% else %}badge--unknown{% endif %}"
+        aria-label="Verdict: {{ result_label }}">
+        {{ result_label }}
+      </span>
+      <p class="result-card__explanation">{{ result_explanation }}</p>
+    </div>
+  </div>
+
+  {# ── Risk Card ── #}
+  <div class="risk-card">
+    <div class="risk-card__item">
+      <span class="risk-card__label">Risk Level</span>
+      <span class="risk-card__value risk-level--{{ scan.risk_level | lower if scan.risk_level else 'unknown' }}">
+        {{ scan.risk_level or '—' }}
+      </span>
+    </div>
+    <div class="risk-card__item">
+      <span class="risk-card__label">Probability Score</span>
+      <div class="risk-card__score-row">
+        <span class="risk-card__value">{{ "%.1f"|format((scan.probability or 0) * 100) }}%</span>
+        <div class="risk-bar" role="progressbar"
+             aria-valuenow="{{ ((scan.probability or 0) * 100) | int }}"
+             aria-valuemin="0" aria-valuemax="100"
+             aria-label="Risk probability {{ "%.1f"|format((scan.probability or 0) * 100) }}%">
+          <div class="risk-bar__fill risk-bar__fill--{{ pred }}"
+               style="width: {{ "%.1f"|format((scan.probability or 0) * 100) }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── URL Detail ── #}
+  <div class="result-meta">
+    <div class="result-meta__row">
+      <span class="result-meta__key">Scanned URL</span>
+      <span class="result-meta__val result-meta__url" title="{{ scan.url }}">
+        <a href="{{ scan.url }}" target="_blank" rel="noopener noreferrer nofollow">
+          {{ scan.url | truncate(80) }}
+        </a>
+      </span>
+    </div>
+    <div class="result-meta__row">
+      <span class="result-meta__key">Scanned At</span>
+      <span class="result-meta__val">
+        <time datetime="{{ scan.scanned_at.isoformat() }}">
+          {{ scan.scanned_at.strftime('%B %d, %Y at %H:%M') }}
+        </time>
+      </span>
+    </div>
+    {% if scan.model_version %}
+    <div class="result-meta__row">
+      <span class="result-meta__key">Model Version</span>
+      <span class="result-meta__val">{{ scan.model_version }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-state__icon" aria-hidden="true">❓</div>
+  <h3 class="empty-state__title">Result not found</h3>
+  <p class="empty-state__desc">This scan record does not exist or you don't have access to it.</p>
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">Scan a URL</a>
+</div>
+{% endif %}
+
+<div class="result-actions">
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">🔍 Scan Another URL</a>
+  <a href="{{ url_for('scanner.dashboard') }}" class="btn btn-ghost">← Dashboard</a>
+  <a href="{{ url_for('scanner.history') }}" class="btn btn-ghost">View History</a>
+</div>
+
+{% endblock %}

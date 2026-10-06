@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Scan URL · PhishGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Scan a URL</h1>
+    <p class="page-desc">Enter any URL below to check it for phishing indicators.</p>
+  </div>
+</div>
+
+<div class="scan-card">
+
+  {% if error %}
+  <div class="alert alert-danger" role="alert">
+    <span class="alert-icon" aria-hidden="true">✕</span>
+    <span class="alert-text">{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <form method="POST" action="{{ url_for('scanner.scan') }}" novalidate id="scan-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <div class="form-field">
+      <label class="form-label" for="url">URL to scan</label>
+      <p class="form-hint" id="url-hint">
+        Include <code>http://</code> or <code>https://</code> — e.g.
+        <code>https://example.com/path</code>
+      </p>
+      <div class="scan-input-row">
+        <input
+          class="form-input form-input--lg {% if error %}input-error{% endif %}"
+          type="url"
+          id="url"
+          name="url"
+          value="{{ url_val }}"
+          placeholder="https://example.com"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="url-hint"
+          required
+        />
+        <button type="button" class="btn btn-ghost" id="clear-btn"
+                aria-label="Clear URL input"
+                onclick="document.getElementById('url').value=''; this.style.display='none';">
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <div class="scan-actions">
+      <button type="submit" class="btn btn-primary btn-lg" id="scan-btn">
+        <span class="btn-text">🔍 Scan URL</span>
+        <span class="btn-loader hidden" aria-hidden="true"></span>
+      </button>
+      <a href="{{ url_for('scanner.dashboard') }}" class="btn btn-ghost">← Dashboard</a>
+    </div>
+
+  </form>
+
+  <div class="scan-info-box">
+    <h3 class="scan-info-box__title">How it works</h3>
+    <ul class="scan-info-box__list">
+      <li>The URL is analysed for phishing characteristics.</li>
+      <li>A risk classification (<strong>Safe</strong>, <strong>Suspicious</strong>,
+          or <strong>Malicious</strong>) is returned with a probability score.</li>
+      <li>Results are saved to your history.</li>
+    </ul>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const urlInput = document.getElementById("url");
+  const clearBtn = document.getElementById("clear-btn");
+  const scanForm = document.getElementById("scan-form");
+  const scanBtn  = document.getElementById("scan-btn");
+
+  // Show/hide clear button
+  function updateClear() {
+    clearBtn.style.display = urlInput.value ? "inline-flex" : "none";
+  }
+  urlInput.addEventListener("input", updateClear);
+  updateClear();
+
+  // Loading state on submit
+  scanForm.addEventListener("submit", function (e) {
+    const url = urlInput.value.trim();
+    if (!url) { e.preventDefault(); return; }
+    scanBtn.disabled = true;
+    scanBtn.querySelector(".btn-text").textContent = "Scanning…";
+    scanBtn.querySelector(".btn-loader").classList.remove("hidden");
+  });
+</script>
+{% endblock %}
