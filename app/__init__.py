@@ -32,4 +32,10 @@ def create_app(config_class=Config):
     from app.routes import main as main_bp
     app.register_blueprint(main_bp)
 
+    from app.trainer import trainer as trainer_bp
+    app.register_blueprint(trainer_bp)
+
+    # Custom Jinja2 filters
+    app.jinja_env.filters["enumerate"] = enumerate
+
     return app

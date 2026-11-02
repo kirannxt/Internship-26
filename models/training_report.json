@@ -1,0 +1,141 @@
+{
+  "trained_at": "2026-11-02 20:25:39",
+  "version": "20261102_202539",
+  "model_name": "Ensemble (Random Forest + XGBoost)",
+  "total_rows": 120,
+  "train_size": 96,
+  "test_size": 24,
+  "classes": [
+    "safe",
+    "suspicious",
+    "malicious"
+  ],
+  "n_splits": 5,
+  "metrics": {
+    "rf_f1": 1.0,
+    "rf_acc": 1.0,
+    "xgb_f1": 1.0,
+    "xgb_acc": 1.0,
+    "ens_f1": 1.0,
+    "ens_acc": 1.0,
+    "cv_mean": 1.0,
+    "cv_std": 0.0
+  },
+  "classification_report": "              precision    recall  f1-score   support\n\n        safe       1.00      1.00      1.00         8\n  suspicious       1.00      1.00      1.00         8\n   malicious       1.00      1.00      1.00         8\n\n    accuracy                           1.00        24\n   macro avg       1.00      1.00      1.00        24\nweighted avg       1.00      1.00      1.00        24\n",
+  "confusion_matrix": [
+    [
+      8,
+      0,
+      0
+    ],
+    [
+      0,
+      8,
+      0
+    ],
+    [
+      0,
+      0,
+      8
+    ]
+  ],
+  "confusion_labels": [
+    "safe",
+    "suspicious",
+    "malicious"
+  ],
+  "feature_importances": [
+    {
+      "feature": "path_length",
+      "importance": 0.135826
+    },
+    {
+      "feature": "num_suspicious_keywords",
+      "importance": 0.131435
+    },
+    {
+      "feature": "num_dots_in_host",
+      "importance": 0.106941
+    },
+    {
+      "feature": "is_https",
+      "importance": 0.09615
+    },
+    {
+      "feature": "domain_entropy",
+      "importance": 0.094746
+    },
+    {
+      "feature": "num_subdomains",
+      "importance": 0.087848
+    },
+    {
+      "feature": "num_subdirectories",
+      "importance": 0.070024
+    },
+    {
+      "feature": "has_suspicious_tld",
+      "importance": 0.055135
+    },
+    {
+      "feature": "url_length",
+      "importance": 0.046328
+    },
+    {
+      "feature": "num_hyphens_in_domain",
+      "importance": 0.04232
+    },
+    {
+      "feature": "has_executable_ext",
+      "importance": 0.029838
+    },
+    {
+      "feature": "brand_mismatch",
+      "importance": 0.029549
+    },
+    {
+      "feature": "credential_path",
+      "importance": 0.029539
+    },
+    {
+      "feature": "hostname_length",
+      "importance": 0.019082
+    },
+    {
+      "feature": "has_brand_in_subdomain",
+      "importance": 0.018762
+    },
+    {
+      "feature": "is_ip_address",
+      "importance": 0.006479
+    },
+    {
+      "feature": "num_query_params",
+      "importance": 0.0
+    },
+    {
+      "feature": "is_shortener",
+      "importance": 0.0
+    },
+    {
+      "feature": "has_at_symbol",
+      "importance": 0.0
+    },
+    {
+      "feature": "has_double_slash_path",
+      "importance": 0.0
+    },
+    {
+      "feature": "has_hex_encoding",
+      "importance": 0.0
+    },
+    {
+      "feature": "has_redirect_in_path",
+      "importance": 0.0
+    },
+    {
+      "feature": "is_punycode",
+      "importance": 0.0
+    }
+  ]
+}

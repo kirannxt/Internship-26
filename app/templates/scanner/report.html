@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}Training Report · PhishGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Training Report</h1>
+    <p class="page-desc">Full evaluation results from the last model training run.</p>
+  </div>
+  <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
+    <a href="{{ url_for('trainer.train_page') }}" class="btn btn-primary">🔁 Retrain Model</a>
+    <a href="{{ url_for('scanner.scan') }}"       class="btn btn-ghost">🔍 Scan a URL</a>
+  </div>
+</div>
+
+{% if not report %}
+{# ── No report yet ── #}
+<div class="empty-state">
+  <div class="empty-state__icon" aria-hidden="true">📄</div>
+  <h3 class="empty-state__title">No report available yet</h3>
+  <p class="empty-state__desc">Upload a CSV and train the model to generate a report.</p>
+  <a href="{{ url_for('trainer.train_page') }}" class="btn btn-primary">Go to Train Model</a>
+</div>
+
+{% elif report.error is defined %}
+<div class="alert alert-danger">
+  <span class="alert-icon">✕</span>
+  <span class="alert-text">Could not load report: {{ report.error }}</span>
+</div>
+
+{% else %}
+
+{# ── Meta banner ── #}
+<div class="report-banner">
+  <div class="report-banner__item">
+    <span class="report-banner__label">Model</span>
+    <span class="report-banner__value">{{ report.model_name }}</span>
+  </div>
+  <div class="report-banner__item">
+    <span class="report-banner__label">Version</span>
+    <span class="report-banner__value report-banner__mono">{{ report.version }}</span>
+  </div>
+  <div class="report-banner__item">
+    <span class="report-banner__label">Trained At</span>
+    <span class="report-banner__value">{{ report.trained_at }}</span>
+  </div>
+  <div class="report-banner__item">
+    <span class="report-banner__label">Dataset</span>
+    <span class="report-banner__value">
+      {{ report.total_rows }} rows &nbsp;·&nbsp;
+      {{ report.train_size }} train / {{ report.test_size }} test
+    </span>
+  </div>
+  <div class="report-banner__item">
+    <span class="report-banner__label">Classes</span>
+    <span class="report-banner__value">
+      {% for cls in report.classes %}
+      <span class="report-cls-badge report-cls-badge--{{ cls }}">{{ cls }}</span>
+      {% endfor %}
+    </span>
+  </div>
+</div>
+
+{# ── 1. Model comparison cards ── #}
+<section class="report-section">
+  <h2 class="report-section__title">Model Performance</h2>
+  <div class="report-metric-grid">
+
+    {% set models = [
+      ('Random Forest',   report.metrics.rf_f1,  report.metrics.rf_acc,  '#2563eb'),
+      ('XGBoost',         report.metrics.xgb_f1, report.metrics.xgb_acc, '#7c3aed'),
+      ('Ensemble (Final)',report.metrics.ens_f1,  report.metrics.ens_acc, '#16a34a'),
+    ] %}
+    {% for name, f1, acc, colour in models %}
+    <div class="report-metric-card">
+      <div class="report-metric-card__accent" style="background:{{ colour }}"></div>
+      <p class="report-metric-card__name">{{ name }}</p>
+      <p class="report-metric-card__f1" style="color:{{ colour }}">
+        {{ "%.1f"|format(f1 * 100) }}%
+      </p>
+      <p class="report-metric-card__sub">F1-macro</p>
+      <div class="report-metric-bar-track">
+        <div class="report-metric-bar-fill"
+             style="width:{{ "%.1f"|format(f1 * 100) }}%;background:{{ colour }}"></div>
+      </div>
+      <p class="report-metric-card__acc">Accuracy: {{ "%.1f"|format(acc * 100) }}%</p>
+    </div>
+    {% endfor %}
+
+    {# CV card #}
+    <div class="report-metric-card">
+      <div class="report-metric-card__accent" style="background:#d97706"></div>
+      <p class="report-metric-card__name">Cross-Validation</p>
+      <p class="report-metric-card__f1" style="color:#d97706">
+        {{ "%.1f"|format(report.metrics.cv_mean * 100) }}%
+      </p>
+      <p class="report-metric-card__sub">{{ report.n_splits }}-fold F1-macro</p>
+      <div class="report-metric-bar-track">
+        <div class="report-metric-bar-fill"
+             style="width:{{ "%.1f"|format(report.metrics.cv_mean * 100) }}%;background:#d97706"></div>
+      </div>
+      <p class="report-metric-card__acc">± {{ report.metrics.cv_std }}</p>
+    </div>
+
+  </div>
+</section>
+
+{# ── 2. Confusion Matrix ── #}
+{% if report.confusion_matrix and report.confusion_labels %}
+<section class="report-section">
+  <h2 class="report-section__title">Confusion Matrix</h2>
+  <p class="report-section__desc">
+    Rows = actual class &nbsp;·&nbsp; Columns = predicted class.
+    Diagonal cells (green) are correct predictions.
+  </p>
+  <div class="report-cm-wrap">
+    <table class="cm-table" aria-label="Confusion matrix">
+      <thead>
+        <tr>
+          <th class="cm-corner"></th>
+          {% for cls in report.confusion_labels %}
+          <th>Pred: <span class="report-cls-badge report-cls-badge--{{ cls }}">{{ cls }}</span></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for i, row in report.confusion_matrix | enumerate %}
+        <tr>
+          <th>Actual: <span class="report-cls-badge report-cls-badge--{{ report.confusion_labels[i] }}">
+            {{ report.confusion_labels[i] }}
+          </span></th>
+          {% for j, val in row | enumerate %}
+          {% set is_diag = (i == j) %}
+          {% set has_err = (val > 0 and not is_diag) %}
+          <td class="cm-cell {% if is_diag %}cm-cell--hit{% elif has_err %}cm-cell--miss{% endif %}">
+            <span class="cm-cell__val">{{ val }}</span>
+            {% if report.test_size and report.test_size > 0 %}
+            <span class="cm-cell__pct">{{ "%.1f"|format(val / report.test_size * 100) }}%</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{# ── 3. Feature Importances ── #}
+{% if report.feature_importances %}
+<section class="report-section">
+  <h2 class="report-section__title">Feature Importances <span class="report-section__badge">Random Forest</span></h2>
+  <p class="report-section__desc">Relative contribution of each feature to the model's decisions.</p>
+  <div class="report-fi-list">
+    {% set max_imp = report.feature_importances[0].importance %}
+    {% for fi in report.feature_importances %}
+    {% set pct = (fi.importance / max_imp * 100) if max_imp > 0 else 0 %}
+    {% set abs_pct = (fi.importance * 100) %}
+    <div class="report-fi-row">
+      <span class="report-fi-rank">{{ loop.index }}</span>
+      <span class="report-fi-name">{{ fi.feature | replace('_', ' ') }}</span>
+      <div class="fi-bar-track">
+        <div class="fi-bar-fill" style="width:{{ "%.1f"|format(pct) }}%"></div>
+      </div>
+      <span class="fi-val">{{ "%.2f"|format(abs_pct) }}%</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── 4. Classification Report ── #}
+{% if report.classification_report %}
+<section class="report-section">
+  <h2 class="report-section__title">Per-Class Metrics</h2>
+  <p class="report-section__desc">Precision, recall and F1-score broken down by class.</p>
+
+  {# Parse and render as a styled table instead of raw text #}
+  {% set lines = report.classification_report.strip().split('\n') %}
+  <div class="report-clf-wrap">
+    <table class="report-clf-table" aria-label="Classification report">
+      <thead>
+        <tr>
+          <th>Class</th>
+          <th>Precision</th>
+          <th>Recall</th>
+          <th>F1-Score</th>
+          <th>Support</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for line in lines %}
+        {% set parts = line.split() %}
+        {% if parts | length == 5 and parts[0] not in ('accuracy', 'macro', 'weighted') %}
+        <tr>
+          <td>
+            <span class="report-cls-badge report-cls-badge--{{ parts[0] }}">{{ parts[0] }}</span>
+          </td>
+          <td>{{ parts[1] }}</td>
+          <td>{{ parts[2] }}</td>
+          <td><strong>{{ parts[3] }}</strong></td>
+          <td class="text-muted">{{ parts[4] }}</td>
+        </tr>
+        {% elif parts | length == 4 and parts[0] == 'accuracy' %}
+        <tr class="report-clf-accuracy">
+          <td><strong>Accuracy</strong></td>
+          <td colspan="2"></td>
+          <td><strong>{{ parts[1] }}</strong></td>
+          <td class="text-muted">{{ parts[2] }}</td>
+        </tr>
+        {% elif parts | length >= 5 and parts[0] in ('macro', 'weighted') %}
+        <tr class="report-clf-avg">
+          <td>{{ parts[0] }} avg</td>
+          <td>{{ parts[2] }}</td>
+          <td>{{ parts[3] }}</td>
+          <td><strong>{{ parts[4] }}</strong></td>
+          <td class="text-muted">{{ parts[5] if parts | length > 5 else '' }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Also keep raw pre as fallback #}
+  <details class="report-raw-toggle">
+    <summary>View raw text report</summary>
+    <pre class="report-pre">{{ report.classification_report }}</pre>
+  </details>
+</section>
+{% endif %}
+
+{% endif %}{# /report #}
+
+{% endblock %}

@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block title %}Train Model · PhishGuard{% endblock %}
+
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Train Model</h1>
+    <p class="page-desc">Upload a labelled URL dataset (CSV) to retrain the ML classifier.</p>
+  </div>
+  {% if last_report %}
+  <a href="{{ url_for('trainer.train_report') }}" target="_blank" class="btn btn-ghost">
+    📄 View Last Report
+  </a>
+  {% endif %}
+</div>
+
+{# ── CSV Format Guide ── #}
+<div class="train-guide">
+  <h3 class="train-guide__title">Expected CSV Format</h3>
+  <div class="train-guide__body">
+    <div class="train-guide__col">
+      <p>Your CSV must have at least two columns — one for the URL and one for the label.
+         Column names are detected automatically but can be overridden below.</p>
+      <table class="train-guide__table">
+        <thead>
+          <tr><th>Label Value</th><th>Maps to</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>safe</code> / <code>legitimate</code> / <code>benign</code> / <code>0</code></td><td>✅ Safe</td></tr>
+          <tr><td><code>suspicious</code> / <code>phishing</code> / <code>1</code></td><td>⚠️ Suspicious</td></tr>
+          <tr><td><code>malicious</code> / <code>malware</code> / <code>2</code></td><td>🚨 Malicious</td></tr>
+        </tbody>
+      </table>
+      <p class="train-guide__note">
+        Binary datasets (0 = safe, 1 = phishing) are also accepted — 1 maps to Malicious.
+      </p>
+    </div>
+    <div class="train-guide__col">
+      <p class="train-guide__example-label">Example CSV:</p>
+      <pre class="train-guide__pre">url,label
+https://github.com/features,safe
+http://paypal-verify.tk/login,phishing
+https://google.com,legitimate
+http://192.168.1.1/update.exe,malicious</pre>
+    </div>
+  </div>
+</div>
+
+{# ── Step 1: Upload ── #}
+<div class="train-card" id="step-upload">
+  <div class="train-step-header">
+    <span class="train-step-num">1</span>
+    <h2 class="train-step-title">Upload CSV File</h2>
+  </div>
+
+  <div class="qr-drop-zone" id="csv-drop-zone" role="button" tabindex="0"
+       aria-label="CSV file drop zone">
+    <div class="qr-drop-zone__inner" id="csv-drop-inner">
+      <span class="qr-drop-zone__icon" aria-hidden="true">📂</span>
+      <p class="qr-drop-zone__text">Drag &amp; drop a CSV file, or <span class="qr-drop-zone__link">browse</span></p>
+      <p class="qr-drop-zone__sub">CSV · up to 50 MB</p>
+    </div>
+    <input type="file" id="csv-file-input" accept=".csv"
+           class="qr-file-input" aria-label="Choose CSV file" />
+  </div>
+
+  <div id="upload-status" class="upload-status hidden" aria-live="polite"></div>
+</div>
+
+{# ── Step 2: Column Mapping ── #}
+<div class="train-card hidden" id="step-columns">
+  <div class="train-step-header">
+    <span class="train-step-num">2</span>
+    <h2 class="train-step-title">Map Columns</h2>
+  </div>
+
+  <div class="col-map-grid">
+    <div class="form-field">
+      <label class="form-label" for="url-col-select">URL Column</label>
+      <select class="form-input" id="url-col-select" aria-label="Select URL column"></select>
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="label-col-select">Label Column</label>
+      <select class="form-input" id="label-col-select" aria-label="Select label column"></select>
+    </div>
+  </div>
+
+  <p class="col-map-info" id="col-map-info"></p>
+
+  {# Preview table #}
+  <div id="preview-container" class="preview-container hidden">
+    <p class="preview-title">Preview (first 5 rows)</p>
+    <div class="preview-scroll">
+      <table class="preview-table" id="preview-table">
+        <thead id="preview-thead"></thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="scan-actions" style="margin-top:var(--space-6)">
+    <button class="btn btn-primary btn-lg" id="train-btn" type="button">
+      <span class="btn-text">🚀 Start Training</span>
+      <span class="btn-loader hidden" aria-hidden="true"></span>
+    </button>
+    <button class="btn btn-ghost" id="reset-btn" type="button">↩ Upload Different File</button>
+  </div>
+</div>
+
+{# ── Step 3: Training Progress ── #}
+<div class="train-card hidden" id="step-training">
+  <div class="train-step-header">
+    <span class="train-step-num">3</span>
+    <h2 class="train-step-title">Training in Progress…</h2>
+  </div>
+  <div class="training-progress">
+    <div class="training-spinner" aria-hidden="true"></div>
+    <p class="training-progress__text" id="training-msg">
+      Extracting features and training the ensemble model. This may take a moment…
+    </p>
+  </div>
+</div>
+
+{# ── Step 4: Results ── #}
+<div class="train-card hidden" id="step-results">
+  <div class="train-step-header">
+    <span class="train-step-num">4</span>
+    <h2 class="train-step-title">Training Complete ✅</h2>
+  </div>
+
+  {# Summary badges #}
+  <div class="results-summary" id="results-summary"></div>
+
+  {# Metric cards #}
+  <div class="metric-grid" id="metric-grid"></div>
+
+  {# Per-class bars #}
+  <div class="train-section" id="cv-section">
+    <h3 class="train-section__title">Cross-Validation (5-fold)</h3>
+    <div id="cv-result"></div>
+  </div>
+
+  {# Confusion matrix #}
+  <div class="train-section" id="cm-section">
+    <h3 class="train-section__title">Confusion Matrix</h3>
+    <div id="cm-container"></div>
+  </div>
+
+  {# Feature importances #}
+  <div class="train-section" id="fi-section">
+    <h3 class="train-section__title">Top Feature Importances (Random Forest)</h3>
+    <div id="fi-container"></div>
+  </div>
+
+  {# Classification report #}
+  <div class="train-section">
+    <h3 class="train-section__title">Full Classification Report</h3>
+    <pre class="report-pre" id="report-pre"></pre>
+  </div>
+
+  <div class="scan-actions" style="margin-top:var(--space-6)">
+    <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">🔍 Try the Updated Model</a>
+    <button class="btn btn-ghost" id="train-again-btn" type="button">↩ Train Again</button>
+    <a href="{{ url_for('trainer.train_report') }}" target="_blank" class="btn btn-ghost">
+      📄 Download Report
+    </a>
+  </div>
+</div>
+
+{# ── Error panel ── #}
+<div class="train-card hidden" id="step-error">
+  <div class="alert alert-danger" id="error-alert" role="alert">
+    <span class="alert-icon" aria-hidden="true">✕</span>
+    <span class="alert-text" id="error-text"></span>
+  </div>
+  <button class="btn btn-ghost" id="error-reset-btn" style="margin-top:var(--space-4)" type="button">
+    ↩ Try Again
+  </button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+
+  /* ── State ──────────────────────────────────────────────────────── */
+  var state = { tmpPath: null, columns: [], urlCol: null, labelCol: null };
+
+  /* ── DOM refs ───────────────────────────────────────────────────── */
+  var dropZone     = document.getElementById("csv-drop-zone");
+  var fileInput    = document.getElementById("csv-file-input");
+  var uploadStatus = document.getElementById("upload-status");
+
+  var stepUpload   = document.getElementById("step-upload");
+  var stepColumns  = document.getElementById("step-columns");
+  var stepTraining = document.getElementById("step-training");
+  var stepResults  = document.getElementById("step-results");
+  var stepError    = document.getElementById("step-error");
+
+  var urlSel       = document.getElementById("url-col-select");
+  var labelSel     = document.getElementById("label-col-select");
+  var colMapInfo   = document.getElementById("col-map-info");
+  var previewCont  = document.getElementById("preview-container");
+  var prevHead     = document.getElementById("preview-thead");
+  var prevBody     = document.getElementById("preview-tbody");
+
+  var trainBtn     = document.getElementById("train-btn");
+  var resetBtn     = document.getElementById("reset-btn");
+  var trainAgain   = document.getElementById("train-again-btn");
+  var errorReset   = document.getElementById("error-reset-btn");
+
+  /* ── Helpers ────────────────────────────────────────────────────── */
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+
+  function showOnly(step) {
+    [stepColumns, stepTraining, stepResults, stepError].forEach(hide);
+    show(step);
+  }
+
+  function showError(msg) {
+    document.getElementById("error-text").textContent = msg;
+    showOnly(stepError);
+  }
+
+  function setStatus(msg, type) {
+    uploadStatus.textContent = msg;
+    uploadStatus.className = "upload-status alert alert-" + (type || "info");
+    show(uploadStatus);
+  }
+
+  function buildSelectOptions(sel, columns, guess) {
+    sel.innerHTML = "";
+    columns.forEach(function (col) {
+      var opt = document.createElement("option");
+      opt.value = col;
+      opt.textContent = col;
+      if (col === guess) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function buildPreview(columns, rows) {
+    prevHead.innerHTML = "";
+    prevBody.innerHTML = "";
+    var tr = document.createElement("tr");
+    columns.forEach(function (c) {
+      var th = document.createElement("th");
+      th.textContent = c;
+      tr.appendChild(th);
+    });
+    prevHead.appendChild(tr);
+    rows.forEach(function (row) {
+      var tr2 = document.createElement("tr");
+      columns.forEach(function (c) {
+        var td = document.createElement("td");
+        td.textContent = row[c] !== undefined ? row[c] : "";
+        tr2.appendChild(td);
+      });
+      prevBody.appendChild(tr2);
+    });
+    show(previewCont);
+  }
+
+  /* ── Upload ─────────────────────────────────────────────────────── */
+  function uploadFile(file) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setStatus("Please select a .csv file.", "danger");
+      return;
+    }
+
+    setStatus("Uploading and parsing…", "info");
+
+    var fd = new FormData();
+    fd.append("csv_file", file);
+    fd.append("csrf_token", "{{ csrf_token() }}");
+
+    fetch("{{ url_for('trainer.train_preview') }}", { method: "POST", body: fd })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { setStatus(data.error, "danger"); return; }
+
+        state.tmpPath  = data.tmp_path;
+        state.columns  = data.columns;
+
+        hide(uploadStatus);
+        buildSelectOptions(urlSel,   data.columns, data.url_guess);
+        buildSelectOptions(labelSel, data.columns, data.label_guess);
+        colMapInfo.textContent = data.total_rows + " rows detected in " + file.name;
+        buildPreview(data.columns, data.preview);
+        showOnly(stepColumns);
+      })
+      .catch(function (err) { setStatus("Upload failed: " + err, "danger"); });
+  }
+
+  /* ── Drop zone ──────────────────────────────────────────────────── */
+  dropZone.addEventListener("click", function (e) {
+    if (e.target !== fileInput) fileInput.click();
+  });
+  dropZone.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") fileInput.click();
+  });
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files[0]) uploadFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener("dragover",  function (e) { e.preventDefault(); dropZone.classList.add("qr-drop-zone--over"); });
+  dropZone.addEventListener("dragleave", function ()  { dropZone.classList.remove("qr-drop-zone--over"); });
+  dropZone.addEventListener("drop", function (e) {
+    e.preventDefault();
+    dropZone.classList.remove("qr-drop-zone--over");
+    var dt = e.dataTransfer;
+    if (dt && dt.files && dt.files[0]) {
+      try {
+        var dtt = new DataTransfer();
+        dtt.items.add(dt.files[0]);
+        fileInput.files = dtt.files;
+      } catch (_) {}
+      uploadFile(dt.files[0]);
+    }
+  });
+
+  /* ── Reset ──────────────────────────────────────────────────────── */
+  function resetAll() {
+    state = { tmpPath: null, columns: [], urlCol: null, labelCol: null };
+    fileInput.value = "";
+    hide(uploadStatus);
+    prevHead.innerHTML = ""; prevBody.innerHTML = "";
+    hide(previewCont);
+    [stepColumns, stepTraining, stepResults, stepError].forEach(hide);
+  }
+
+  resetBtn.addEventListener("click", resetAll);
+  trainAgain.addEventListener("click", resetAll);
+  errorReset.addEventListener("click", resetAll);
+
+  /* ── Train ──────────────────────────────────────────────────────── */
+  trainBtn.addEventListener("click", function () {
+    var urlCol   = urlSel.value;
+    var labelCol = labelSel.value;
+
+    if (!state.tmpPath) { showError("Upload session lost. Please re-upload."); return; }
+    if (!urlCol || !labelCol) { showError("Select both URL and Label columns."); return; }
+
+    trainBtn.disabled = true;
+    trainBtn.querySelector(".btn-text").textContent = "Training…";
+    trainBtn.querySelector(".btn-loader").classList.remove("hidden");
+    showOnly(stepTraining);
+
+    fetch("{{ url_for('trainer.train_run') }}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token() }}"
+      },
+      body: JSON.stringify({
+        tmp_path:  state.tmpPath,
+        url_col:   urlCol,
+        label_col: labelCol
+      })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      trainBtn.disabled = false;
+      trainBtn.querySelector(".btn-text").textContent = "🚀 Start Training";
+      trainBtn.querySelector(".btn-loader").classList.add("hidden");
+
+      if (data.error) { showError(data.error); return; }
+      renderResults(data);
+      showOnly(stepResults);
+    })
+    .catch(function (err) {
+      trainBtn.disabled = false;
+      trainBtn.querySelector(".btn-text").textContent = "🚀 Start Training";
+      trainBtn.querySelector(".btn-loader").classList.add("hidden");
+      showError("Training request failed: " + err);
+    });
+  });
+
+  /* ── Render Results ─────────────────────────────────────────────── */
+  function renderResults(d) {
+    var m = d.metrics;
+
+    /* Summary badges */
+    document.getElementById("results-summary").innerHTML =
+      badge(d.trained_rows + " rows trained", "info") +
+      badge(d.test_size + " rows tested", "info") +
+      badge("v" + d.version, "info") +
+      (d.skipped_rows ? badge(d.skipped_rows + " rows skipped", "warning") : "");
+
+    /* Metric cards */
+    document.getElementById("metric-grid").innerHTML = [
+      metricCard("Random Forest",  "F1", m.rf_f1,  "Acc", m.rf_acc),
+      metricCard("XGBoost",        "F1", m.xgb_f1, "Acc", m.xgb_acc),
+      metricCard("Ensemble",       "F1", m.ens_f1, "Acc", m.ens_acc),
+    ].join("");
+
+    /* CV */
+    document.getElementById("cv-result").innerHTML =
+      "<p class='cv-result'>F1-macro: <strong>" + m.cv_mean +
+      "</strong> &pm; " + m.cv_std + "</p>";
+
+    /* Confusion matrix */
+    if (d.confusion_matrix && d.confusion_labels) {
+      var labels = d.confusion_labels;
+      var rows   = d.confusion_matrix;
+      var html   = "<table class='cm-table'><thead><tr><th></th>";
+      labels.forEach(function (l) { html += "<th>Pred: " + l + "</th>"; });
+      html += "</tr></thead><tbody>";
+      rows.forEach(function (row, i) {
+        html += "<tr><th>Actual: " + labels[i] + "</th>";
+        row.forEach(function (val, j) {
+          var cls = (i === j) ? "cm-cell cm-cell--hit" : (val > 0 ? "cm-cell cm-cell--miss" : "cm-cell");
+          html += "<td class='" + cls + "'>" + val + "</td>";
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+      document.getElementById("cm-container").innerHTML = html;
+    }
+
+    /* Feature importances */
+    if (d.feature_importances) {
+      var max = d.feature_importances[0] ? d.feature_importances[0].importance : 1;
+      var fiHtml = d.feature_importances.map(function (fi) {
+        var pct = (fi.importance / max * 100).toFixed(1);
+        return "<div class='fi-row'>" +
+          "<span class='fi-name'>" + fi.feature.replace(/_/g, " ") + "</span>" +
+          "<div class='fi-bar-track'><div class='fi-bar-fill' style='width:" + pct + "%'></div></div>" +
+          "<span class='fi-val'>" + (fi.importance * 100).toFixed(2) + "%</span>" +
+          "</div>";
+      }).join("");
+      document.getElementById("fi-container").innerHTML = fiHtml;
+    }
+
+    /* Full report */
+    document.getElementById("report-pre").textContent = d.report || "";
+  }
+
+  function badge(text, type) {
+    return "<span class='result-summary-badge badge-" + type + "'>" + text + "</span>";
+  }
+
+  function metricCard(title, k1, v1, k2, v2) {
+    var pct1 = (v1 * 100).toFixed(1);
+    var pct2 = (v2 * 100).toFixed(1);
+    var colour = v1 >= 0.9 ? "var(--color-safe)" :
+                 v1 >= 0.7 ? "var(--color-suspicious)" : "var(--color-malicious)";
+    return "<div class='metric-card'>" +
+      "<p class='metric-card__title'>" + title + "</p>" +
+      "<p class='metric-card__value' style='color:" + colour + "'>" + pct1 + "%</p>" +
+      "<p class='metric-card__sub'>" + k1 + " (macro)</p>" +
+      "<p class='metric-card__acc'>" + k2 + ": " + pct2 + "%</p>" +
+      "</div>";
+  }
+
+})();
+</script>
+{% endblock %}
