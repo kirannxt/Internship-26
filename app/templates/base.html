@@ -31,6 +31,10 @@
              class="{% if request.endpoint == 'scanner.history' %}active{% endif %}">
         History
       </a></li>
+      <li><a href="{{ url_for('trainer.train_page') }}"
+             class="{% if request.endpoint == 'trainer.train_page' %}active{% endif %}">
+        Train Model
+      </a></li>
       <li><a href="{{ url_for('main.about') }}"
              class="{% if request.endpoint == 'main.about' %}active{% endif %}">
         About

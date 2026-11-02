@@ -1,55 +1,57 @@
-PhishGuard — Training Report
+PhishGuard — Training Report (CSV Upload)
 ============================================================
-Trained at  : 2026-11-02 18:21:21
-Model       : Ensemble(RF+XGB)
-Version     : 20261102
-Features    : 23
+Trained at   : 2026-11-02 20:25:39
+Source       : CSV upload
+Total rows   : 120
+Train / Test : 96 / 24
+Classes      : ['safe', 'suspicious', 'malicious']
 
-── Metrics ─────────────────────────────────────────────
-  Random Forest  F1-macro : 1.0
-  XGBoost        F1-macro : 1.0
-  Ensemble       F1-macro : 1.0
-  Ensemble       Accuracy : 1.0
-  CV (5-fold)    F1-macro : 1.0 ± 0.0
+Metrics
+-------
+  Random Forest  F1   : 1.0    Acc: 1.0
+  XGBoost        F1   : 1.0   Acc: 1.0
+  Ensemble       F1   : 1.0   Acc: 1.0
+  CV (5-fold) F1 mean : 1.0 +/- 0.0
 
-── Classification Report ────────────────────────────────
+Classification Report
+---------------------
               precision    recall  f1-score   support
 
-        safe       1.00      1.00      1.00       800
-  suspicious       1.00      1.00      1.00       800
-   malicious       1.00      1.00      1.00       800
+        safe       1.00      1.00      1.00         8
+  suspicious       1.00      1.00      1.00         8
+   malicious       1.00      1.00      1.00         8
 
-    accuracy                           1.00      2400
-   macro avg       1.00      1.00      1.00      2400
-weighted avg       1.00      1.00      1.00      2400
+    accuracy                           1.00        24
+   macro avg       1.00      1.00      1.00        24
+weighted avg       1.00      1.00      1.00        24
 
 
-── Confusion Matrix (safe / suspicious / malicious) ─────
-[[800   0   0]
- [  0 800   0]
- [  0   0 800]]
+Confusion Matrix
+----------------
+[[8, 0, 0], [0, 8, 0], [0, 0, 8]]
 
-── Feature Importances (Random Forest) ──────────────────
-  is_https                        0.184719
-  has_suspicious_tld              0.132328
-  path_length                     0.113707
-  num_suspicious_keywords         0.109258
-  is_shortener                    0.070213
-  url_length                      0.062257
-  hostname_length                 0.048548
-  domain_entropy                  0.041358
-  brand_mismatch                  0.040091
-  credential_path                 0.032226
-  num_subdirectories              0.022784
-  is_ip_address                   0.021834
-  has_hex_encoding                0.018245
-  num_query_params                0.017840
-  has_redirect_in_path            0.017634
-  num_subdomains                  0.015136
-  num_dots_in_host                0.014747
-  has_at_symbol                   0.014353
-  num_hyphens_in_domain           0.010106
-  has_executable_ext              0.007116
-  has_brand_in_subdomain          0.005502
+Feature Importances (Random Forest)
+------------------------------------
+  path_length                     0.135826
+  num_suspicious_keywords         0.131435
+  num_dots_in_host                0.106941
+  is_https                        0.096150
+  domain_entropy                  0.094746
+  num_subdomains                  0.087848
+  num_subdirectories              0.070024
+  has_suspicious_tld              0.055135
+  url_length                      0.046328
+  num_hyphens_in_domain           0.042320
+  has_executable_ext              0.029838
+  brand_mismatch                  0.029549
+  credential_path                 0.029539
+  hostname_length                 0.019082
+  has_brand_in_subdomain          0.018762
+  is_ip_address                   0.006479
+  num_query_params                0.000000
+  is_shortener                    0.000000
+  has_at_symbol                   0.000000
   has_double_slash_path           0.000000
+  has_hex_encoding                0.000000
+  has_redirect_in_path            0.000000
   is_punycode                     0.000000

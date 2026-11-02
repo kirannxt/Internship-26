@@ -1596,3 +1596,657 @@ body.auth-page .site-footer {
   .ml-fv-grid { grid-template-columns: repeat(2, 1fr); }
   .ml-prob-label { min-width: 70px; }
 }
+
+/* ============================================================
+   PhishGuard — CSV Training Page Components
+   train-card, train-guide, col-mapper, preview-table,
+   metric-grid, confusion-matrix, feature-importance bars
+   ============================================================ */
+
+/* ── Training Guide ───────────────────────────────────────── */
+.train-guide {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.train-guide__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.train-guide__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+.train-guide__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+  margin-top: var(--space-3);
+}
+.train-guide__table th,
+.train-guide__table td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+.train-guide__table th {
+  background: var(--color-surface-2);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.train-guide__note {
+  margin-top: var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.train-guide__example-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.train-guide__pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+/* ── Training Card (step container) ──────────────────────── */
+.train-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
+}
+
+.train-step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.train-step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.train-step-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ── Upload status ────────────────────────────────────────── */
+.upload-status {
+  margin-top: var(--space-4);
+  font-size: 0.9rem;
+}
+
+/* ── Column mapping ───────────────────────────────────────── */
+.col-map-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.col-map-info {
+  font-size: 0.8375rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+/* ── Preview table ────────────────────────────────────────── */
+.preview-container {
+  margin-top: var(--space-5);
+}
+
+.preview-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+
+.preview-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.preview-table th {
+  background: var(--color-surface-2);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.preview-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-text);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-table tr:last-child td { border-bottom: none; }
+
+/* ── Training spinner ─────────────────────────────────────── */
+.training-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+}
+
+.training-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.training-progress__text {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Results: summary badges ──────────────────────────────── */
+.results-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.result-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.75em;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+}
+.badge-info    { background: var(--color-info-bg);    color: var(--color-info-text);    border-color: var(--color-info-border); }
+.badge-warning { background: var(--color-warning-bg); color: var(--color-warning-text); border-color: var(--color-warning-border); }
+
+/* ── Metric cards ─────────────────────────────────────────── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.metric-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+}
+.metric-card__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+.metric-card__value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: var(--space-1);
+}
+.metric-card__sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.metric-card__acc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+  font-weight: 600;
+}
+
+/* ── Train section wrapper ────────────────────────────────── */
+.train-section {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+.train-section__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+
+/* ── CV result ────────────────────────────────────────────── */
+.cv-result {
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+/* ── Confusion matrix ─────────────────────────────────────── */
+.cm-table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.cm-table th,
+.cm-table td {
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--color-border);
+  text-align: center;
+  min-width: 90px;
+}
+.cm-table th {
+  background: var(--color-surface-2);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.cm-cell { color: var(--color-text-muted); }
+.cm-cell--hit  { background: var(--color-safe-bg);      color: var(--color-safe);      font-weight: 800; font-size: 1rem; }
+.cm-cell--miss { background: var(--color-malicious-bg); color: var(--color-malicious); font-weight: 700; }
+
+/* ── Feature importance bars ──────────────────────────────── */
+.fi-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.fi-name {
+  font-size: 0.8125rem;
+  min-width: 210px;
+  flex-shrink: 0;
+  color: var(--color-text);
+  text-transform: capitalize;
+}
+.fi-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.fi-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.6s ease;
+}
+.fi-val {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  min-width: 48px;
+  text-align: right;
+  color: var(--color-text-muted);
+}
+
+/* ── Full report pre ──────────────────────────────────────── */
+.report-pre {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  color: var(--color-text);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .train-guide__body { grid-template-columns: 1fr; }
+  .metric-grid       { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  .col-map-grid    { grid-template-columns: 1fr; }
+  .metric-grid     { grid-template-columns: 1fr; }
+  .fi-name         { min-width: 130px; }
+  .train-card      { padding: var(--space-5); }
+}
+
+/* ============================================================
+   PhishGuard — HTML Training Report Page
+   report-banner, report-metric-grid, report-fi-list,
+   report-clf-table, report-raw-toggle
+   ============================================================ */
+
+/* ── Meta banner ──────────────────────────────────────────── */
+.report-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-8);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-8);
+}
+
+.report-banner__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 140px;
+}
+
+.report-banner__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.report-banner__value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.report-banner__mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+/* Class badges in banner / table */
+.report-cls-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.55em;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+}
+.report-cls-badge--safe       { background: var(--color-safe-bg);       color: var(--color-safe);       border-color: var(--color-safe-border); }
+.report-cls-badge--suspicious { background: var(--color-suspicious-bg); color: var(--color-suspicious); border-color: var(--color-suspicious-border); }
+.report-cls-badge--malicious  { background: var(--color-malicious-bg);  color: var(--color-malicious);  border-color: var(--color-malicious-border); }
+
+/* ── Report sections ──────────────────────────────────────── */
+.report-section {
+  margin-bottom: var(--space-10);
+}
+
+.report-section__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.report-section__badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  padding: 0.15em 0.6em;
+  border-radius: var(--radius-full);
+}
+
+.report-section__desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+}
+
+/* ── Model metric cards ───────────────────────────────────── */
+.report-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.report-metric-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.report-metric-card__accent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.report-metric-card__name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.report-metric-card__f1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: var(--space-1);
+}
+
+.report-metric-card__sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.report-metric-bar-track {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.report-metric-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.7s ease;
+}
+
+.report-metric-card__acc {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* ── Confusion matrix wrapper ─────────────────────────────── */
+.report-cm-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  display: inline-block;
+}
+
+.cm-corner { background: var(--color-surface-2); }
+
+.cm-cell {
+  text-align: center;
+  padding: var(--space-3) var(--space-5);
+}
+.cm-cell__val {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.cm-cell__pct {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ── Feature importance list ──────────────────────────────── */
+.report-fi-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.report-fi-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.report-fi-rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-fi-name {
+  min-width: 210px;
+  font-size: 0.8375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+/* ── Classification report table ──────────────────────────── */
+.report-clf-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.report-clf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.report-clf-table th {
+  background: var(--color-surface-2);
+  padding: var(--space-3) var(--space-5);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-clf-table td {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.report-clf-table tr:last-child td { border-bottom: none; }
+
+.report-clf-accuracy {
+  background: var(--color-safe-bg);
+}
+.report-clf-accuracy td { color: var(--color-safe); font-weight: 700; }
+
+.report-clf-avg {
+  background: var(--color-surface-2);
+}
+.report-clf-avg td { color: var(--color-text-muted); }
+
+/* ── Raw toggle ───────────────────────────────────────────── */
+.report-raw-toggle {
+  margin-top: var(--space-4);
+}
+
+.report-raw-toggle summary {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  margin-bottom: var(--space-3);
+}
+
+.report-raw-toggle summary:hover { text-decoration: underline; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .report-metric-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .report-banner       { flex-direction: column; gap: var(--space-4); }
+  .report-metric-grid  { grid-template-columns: 1fr 1fr; }
+  .report-fi-name      { min-width: 130px; }
+}
