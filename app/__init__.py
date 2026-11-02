@@ -29,4 +29,7 @@ def create_app(config_class=Config):
     from app.scanner import scanner as scanner_bp
     app.register_blueprint(scanner_bp)
 
+    from app.routes import main as main_bp
+    app.register_blueprint(main_bp)
+
     return app

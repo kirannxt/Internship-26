@@ -6,3 +6,5 @@ WTForms==3.1.2
 python-dotenv==1.0.1
 Werkzeug==3.0.3
 requests==2.32.3
+Pillow==10.4.0
+pyzbar==0.1.9

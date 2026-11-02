@@ -31,6 +31,10 @@
              class="{% if request.endpoint == 'scanner.history' %}active{% endif %}">
         History
       </a></li>
+      <li><a href="{{ url_for('main.about') }}"
+             class="{% if request.endpoint == 'main.about' %}active{% endif %}">
+        About
+      </a></li>
     </ul>
     <div class="nav-user">
       <span class="nav-username" aria-label="Logged in as {{ current_user.username }}">
