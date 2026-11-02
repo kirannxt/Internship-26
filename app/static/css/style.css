@@ -936,3 +936,514 @@ body.auth-page .site-footer {
 @media (max-width: 400px) {
   .summary-grid { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ============================================================
+   PhishGuard — Extended Components (Pipeline v2)
+   Added: Input Tabs, QR Drop Zone, Analysis Cards, Feature Flags,
+          Fusion Bars, Redirect Chain, About Page, Keyword Chips
+   ============================================================ */
+
+/* ── Input Tabs ───────────────────────────────────────────── */
+.input-tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 0;
+}
+
+.input-tab {
+  padding: var(--space-3) var(--space-5);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color var(--transition), border-color var(--transition),
+              background var(--transition);
+}
+.input-tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+.input-tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Tab panels ───────────────────────────────────────────── */
+.tab-panel--hidden { display: none !important; }
+
+/* ── QR Drop Zone ─────────────────────────────────────────── */
+.qr-drop-zone {
+  position: relative;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  background: var(--color-surface-2);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  overflow: hidden;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qr-drop-zone:hover,
+.qr-drop-zone--over {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+.qr-drop-zone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.qr-drop-zone__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+.qr-drop-zone__icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+.qr-drop-zone__text {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+.qr-drop-zone__link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+}
+.qr-drop-zone__sub {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+/* Hidden real file input layered over the zone */
+.qr-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+/* Preview image inside the drop zone */
+.qr-preview-img {
+  max-height: 220px;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+.qr-selected-name {
+  margin-top: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Analysis Section ─────────────────────────────────────── */
+.analysis-section {
+  margin-top: var(--space-8);
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.analysis-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.analysis-card__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.analysis-card__icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* ── Analysis Table ───────────────────────────────────────── */
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: var(--space-4);
+}
+.analysis-table th,
+.analysis-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+.analysis-table th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  width: 44%;
+  white-space: nowrap;
+}
+.analysis-table tr:last-child th,
+.analysis-table tr:last-child td {
+  border-bottom: none;
+}
+.analysis-table code {
+  word-break: break-all;
+}
+
+/* ── Flag Badges (inline) ─────────────────────────────────── */
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15em 0.5em;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  white-space: nowrap;
+}
+.flag-badge--bad  { background: var(--color-malicious-bg);  color: var(--color-malicious); }
+.flag-badge--warn { background: var(--color-suspicious-bg); color: var(--color-suspicious); }
+.flag-badge--ok   { background: var(--color-safe-bg);       color: var(--color-safe); }
+
+/* ── Flag Chips (boolean feature row) ────────────────────── */
+.flag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.flag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+}
+.flag-chip--bad     { background: var(--color-malicious-bg);  color: var(--color-malicious);  border-color: var(--color-malicious-border); }
+.flag-chip--warn    { background: var(--color-suspicious-bg); color: var(--color-suspicious); border-color: var(--color-suspicious-border); }
+.flag-chip--good    { background: var(--color-safe-bg);       color: var(--color-safe);       border-color: var(--color-safe-border); }
+.flag-chip--neutral { background: var(--color-surface-2);     color: var(--color-text-muted); border-color: var(--color-border); }
+.flag-chip__val { font-weight: 800; }
+
+/* ── Keyword Chips ────────────────────────────────────────── */
+.keyword-hits {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+.keyword-hits__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+.keyword-hits__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.keyword-chip {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.2em 0.55em;
+  background: var(--color-malicious-bg);
+  color: var(--color-malicious);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-malicious-border);
+}
+
+/* ── Tag domain (redirect list) ───────────────────────────── */
+.tag-domain {
+  display: inline-block;
+  margin-right: var(--space-1);
+  margin-bottom: var(--space-1);
+  font-size: 0.8rem;
+  padding: 0.15em 0.45em;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Feature Fusion Card ──────────────────────────────────── */
+.fusion-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  margin-top: var(--space-5);
+}
+
+.fusion-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-5);
+}
+
+.fusion-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fusion-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.fusion-bar-row--total {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-1);
+}
+.fusion-bar-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 200px;
+  flex-shrink: 0;
+}
+.fusion-bar-label small {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.fusion-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.fusion-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.7s ease;
+}
+.fusion-bar-fill--url { background: var(--color-primary); }
+.fusion-bar-fill--ctx { background: #7c3aed; }
+.fusion-bar-pct {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 40px;
+  text-align: right;
+}
+
+.fusion-threshold-note {
+  margin-top: var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+.text-safe       { color: var(--color-safe);       font-weight: 700; }
+.text-suspicious { color: var(--color-suspicious); font-weight: 700; }
+.text-malicious  { color: var(--color-malicious);  font-weight: 700; }
+.text-muted      { color: var(--color-text-muted); }
+
+/* ── Redirect Chain List ──────────────────────────────────── */
+.redirect-chain-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin-top: var(--space-3);
+}
+.redirect-chain-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: 0.8375rem;
+}
+.redirect-chain-list__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.redirect-chain-list__url {
+  word-break: break-all;
+  line-height: 1.55;
+}
+
+/* ── About Page ───────────────────────────────────────────── */
+.about-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-8);
+}
+.about-hero__icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.about-hero__title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-bottom: var(--space-2);
+}
+.about-hero__text {
+  font-size: 0.975rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  max-width: 620px;
+}
+
+.about-section {
+  margin-bottom: var(--space-10);
+}
+
+/* ── Pipeline Steps ───────────────────────────────────────── */
+.pipeline-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-left: 3px solid var(--color-border);
+  margin-left: var(--space-4);
+  padding-left: var(--space-6);
+}
+.pipeline-step {
+  display: flex;
+  gap: var(--space-5);
+  position: relative;
+  padding-bottom: var(--space-6);
+}
+.pipeline-step:last-child { padding-bottom: 0; }
+.pipeline-step__num {
+  position: absolute;
+  left: calc(-1 * var(--space-6) - 14px);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid var(--color-bg);
+}
+.pipeline-step__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+.pipeline-step__desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  max-width: 600px;
+}
+
+/* ── Threshold Cards ──────────────────────────────────────── */
+.threshold-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+.threshold-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+}
+.threshold-card--safe      { background: var(--color-safe-bg);       border-color: var(--color-safe-border); }
+.threshold-card--suspicious{ background: var(--color-suspicious-bg); border-color: var(--color-suspicious-border); }
+.threshold-card--malicious { background: var(--color-malicious-bg);  border-color: var(--color-malicious-border); }
+.threshold-card__icon { font-size: 1.75rem; flex-shrink: 0; line-height: 1; }
+.threshold-card__body { display: flex; flex-direction: column; gap: var(--space-1); }
+.threshold-card__label { font-weight: 800; font-size: 1rem; }
+.threshold-card--safe       .threshold-card__label { color: var(--color-safe); }
+.threshold-card--suspicious .threshold-card__label { color: var(--color-suspicious); }
+.threshold-card--malicious  .threshold-card__label { color: var(--color-malicious); }
+.threshold-card__range {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.threshold-card__desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: var(--space-1);
+}
+
+/* ── Tech Chips ───────────────────────────────────────────── */
+.tech-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.tech-chip {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Responsive additions ─────────────────────────────────── */
+@media (max-width: 900px) {
+  .analysis-grid      { grid-template-columns: 1fr; }
+  .threshold-grid     { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .about-hero         { flex-direction: column; gap: var(--space-4); padding: var(--space-5); }
+  .fusion-bar-label   { min-width: 120px; }
+  .fusion-bar-row     { flex-wrap: wrap; }
+  .analysis-card      { padding: var(--space-4); }
+  .threshold-grid     { grid-template-columns: 1fr; }
+}

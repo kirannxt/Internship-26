@@ -1,10 +1,174 @@
 {% extends "base.html" %}
-
-{% block title %}About - FlaskApp{% endblock %}
+{% block title %}About · PhishGuard{% endblock %}
 
 {% block content %}
-<section class="page">
-  <h1>About</h1>
-  <p>This is a Flask web application built with an application factory pattern, blueprints, and SQLAlchemy.</p>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">About PhishGuard</h1>
+    <p class="page-desc">URL risk analysis powered by a multi-stage detection pipeline.</p>
+  </div>
+</div>
+
+{# ── Overview ── #}
+<div class="about-hero">
+  <div class="about-hero__icon" aria-hidden="true">🛡️</div>
+  <div class="about-hero__body">
+    <h2 class="about-hero__title">URL Risk Analysis System</h2>
+    <p class="about-hero__text">
+      PhishGuard analyses every URL through a seven-stage pipeline — from raw input
+      all the way to a human-readable safety recommendation — so you know exactly
+      why a link is flagged, not just <em>that</em> it was flagged.
+    </p>
+  </div>
+</div>
+
+{# ── Pipeline stages ── #}
+<section class="about-section">
+  <h2 class="section-title" style="margin-bottom:var(--space-5);">How the Pipeline Works</h2>
+
+  <div class="pipeline-steps">
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">1</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">Input Detection</h3>
+        <p class="pipeline-step__desc">
+          Accept a URL typed directly, or a QR code image (PNG / JPG / GIF).
+          When a QR image is uploaded it is decoded to extract the embedded URL before
+          any further analysis begins.
+        </p>
+      </div>
+    </div>
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">2</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">Validate &amp; Normalise</h3>
+        <p class="pipeline-step__desc">
+          The URL is checked for basic structural validity. It is then normalised:
+          a missing <code>https://</code> scheme is added, the host is lowercased,
+          default ports are stripped, and common tracking parameters
+          (<code>utm_*</code>, <code>fbclid</code>, <code>gclid</code>, etc.) are removed.
+        </p>
+      </div>
+    </div>
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">3</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">Redirect Resolution</h3>
+        <p class="pipeline-step__desc">
+          The normalised URL is followed through up to five HTTP redirects to find
+          the true destination — unmasking link-shorteners and multi-hop cloaking chains.
+          The full redirect chain is recorded and shown on the result page.
+        </p>
+      </div>
+    </div>
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">4</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">URL Feature Extraction</h3>
+        <p class="pipeline-step__desc">
+          Over a dozen structural features are extracted from the final URL:
+          domain entropy, suspicious TLDs, raw-IP hosts, brand-name keywords in the
+          subdomain, Punycode / IDN homograph detection, URL length, query-parameter
+          count, executable-file extensions, and more.
+        </p>
+      </div>
+    </div>
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">5</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">Contextual Analysis</h3>
+        <p class="pipeline-step__desc">
+          Contextual signals are layered on top of structural features:
+          cross-domain redirect chains, brand impersonation (e.g. a URL that
+          mentions "paypal" but the domain is not paypal.com), credential-harvesting
+          path patterns, and unencrypted HTTP links on sensitive domains.
+        </p>
+      </div>
+    </div>
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">6</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">Feature Fusion &amp; Risk Scoring</h3>
+        <p class="pipeline-step__desc">
+          URL structural features (55% weight) and contextual signals (45% weight)
+          are combined into a single fused risk score. Hard-boost rules
+          override the weighted score for definitive indicators such as IP-based hosts
+          or confirmed brand impersonation. The score is then classified:
+          <strong class="text-safe">Safe</strong> (&lt;35%),
+          <strong class="text-suspicious">Suspicious</strong> (35–65%), or
+          <strong class="text-malicious">Malicious</strong> (&gt;65%).
+        </p>
+      </div>
+    </div>
+
+    <div class="pipeline-step">
+      <div class="pipeline-step__num" aria-hidden="true">7</div>
+      <div class="pipeline-step__body">
+        <h3 class="pipeline-step__title">Safety Recommendation</h3>
+        <p class="pipeline-step__desc">
+          A plain-English recommendation is generated based on the classification and
+          any triggered signals — explaining exactly what was found and advising
+          whether to proceed, verify independently, or avoid the link entirely.
+        </p>
+      </div>
+    </div>
+
+  </div>
 </section>
+
+{# ── Classification thresholds ── #}
+<section class="about-section">
+  <h2 class="section-title" style="margin-bottom:var(--space-5);">Risk Classification</h2>
+  <div class="threshold-grid">
+    <div class="threshold-card threshold-card--safe">
+      <div class="threshold-card__icon">✅</div>
+      <div class="threshold-card__body">
+        <span class="threshold-card__label">Safe</span>
+        <span class="threshold-card__range">Score &lt; 35%</span>
+        <p class="threshold-card__desc">No significant phishing indicators. Proceed with normal caution.</p>
+      </div>
+    </div>
+    <div class="threshold-card threshold-card--suspicious">
+      <div class="threshold-card__icon">⚠️</div>
+      <div class="threshold-card__body">
+        <span class="threshold-card__label">Suspicious</span>
+        <span class="threshold-card__range">Score 35–65%</span>
+        <p class="threshold-card__desc">Some risk signals present. Verify the destination before entering any credentials.</p>
+      </div>
+    </div>
+    <div class="threshold-card threshold-card--malicious">
+      <div class="threshold-card__icon">🚨</div>
+      <div class="threshold-card__body">
+        <span class="threshold-card__label">Malicious</span>
+        <span class="threshold-card__range">Score &gt; 65%</span>
+        <p class="threshold-card__desc">Strong phishing or malware indicators. Avoid opening this link.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Tech stack ── #}
+<section class="about-section">
+  <h2 class="section-title" style="margin-bottom:var(--space-4);">Technology Stack</h2>
+  <div class="tech-list">
+    <span class="tech-chip">🐍 Python 3</span>
+    <span class="tech-chip">🌶️ Flask 3</span>
+    <span class="tech-chip">🗄️ SQLAlchemy + SQLite</span>
+    <span class="tech-chip">🔒 Flask-Login</span>
+    <span class="tech-chip">🛡️ Flask-WTF CSRF</span>
+    <span class="tech-chip">📷 Pillow + pyzbar (QR)</span>
+    <span class="tech-chip">🌐 requests (redirect resolver)</span>
+  </div>
+</section>
+
+<div style="margin-top: var(--space-8);">
+  <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary btn-lg">🔍 Try the Scanner</a>
+</div>
+
 {% endblock %}

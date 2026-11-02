@@ -5,7 +5,7 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Scan Result</h1>
-    <p class="page-desc">Detection analysis for the submitted URL.</p>
+    <p class="page-desc">Full risk analysis for the submitted URL.</p>
   </div>
   <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">🔍 Scan Another URL</a>
 </div>
@@ -18,25 +18,27 @@
   {% set result_class = 'result-card--safe' %}
   {% set result_icon  = '✅' %}
   {% set result_label = 'Safe' %}
-  {% set result_explanation = 'No significant phishing indicators were detected. This URL appears to be low risk. Always stay cautious when sharing personal information online.' %}
 {% elif pred == 'suspicious' %}
   {% set result_class = 'result-card--suspicious' %}
   {% set result_icon  = '⚠️' %}
   {% set result_label = 'Suspicious' %}
-  {% set result_explanation = 'This URL has characteristics associated with phishing or deceptive content. Proceed with caution. Do not enter personal credentials or financial information.' %}
 {% elif pred == 'malicious' %}
   {% set result_class = 'result-card--malicious' %}
   {% set result_icon  = '🚨' %}
   {% set result_label = 'Malicious' %}
-  {% set result_explanation = 'This URL has strong indicators of phishing or malicious intent. Avoid visiting this URL and do not share it with others.' %}
 {% else %}
   {% set result_class = 'result-card--unknown' %}
   {% set result_icon  = '❓' %}
   {% set result_label = 'Unknown' %}
-  {% set result_explanation = 'The classification result was not recognised. Please try scanning again.' %}
 {% endif %}
 
-{# ── Result Card ── #}
+{# ── Parse detail sections ── #}
+{% set url_features   = details.get('url_features', {})   if details else {} %}
+{% set ctx            = details.get('context', {})        if details else {} %}
+{% set fusion         = details.get('fusion', {})         if details else {} %}
+{% set redirect_chain = details.get('redirect_chain', []) if details else [] %}
+
+{# ── 1. Verdict Card ── #}
 <div class="result-card {{ result_class }}" role="region" aria-label="Scan result: {{ result_label }}">
 
   <div class="result-card__top">
@@ -50,11 +52,15 @@
         aria-label="Verdict: {{ result_label }}">
         {{ result_label }}
       </span>
-      <p class="result-card__explanation">{{ result_explanation }}</p>
+
+      {# Safety recommendation #}
+      {% if scan.recommendation %}
+      <p class="result-card__explanation">{{ scan.recommendation }}</p>
+      {% endif %}
     </div>
   </div>
 
-  {# ── Risk Card ── #}
+  {# ── Risk bar ── #}
   <div class="risk-card">
     <div class="risk-card__item">
       <span class="risk-card__label">Risk Level</span>
@@ -75,16 +81,44 @@
         </div>
       </div>
     </div>
+    {% if fusion %}
+    <div class="risk-card__item">
+      <span class="risk-card__label">URL Features Score</span>
+      <span class="risk-card__value" style="font-size:1.1rem; font-weight:700;">
+        {{ "%.0f"|format((fusion.get('url_score', 0)) * 100) }}%
+      </span>
+    </div>
+    <div class="risk-card__item">
+      <span class="risk-card__label">Context Score</span>
+      <span class="risk-card__value" style="font-size:1.1rem; font-weight:700;">
+        {{ "%.0f"|format((fusion.get('context_score', 0)) * 100) }}%
+      </span>
+    </div>
+    {% endif %}
   </div>
 
-  {# ── URL Detail ── #}
+  {# ── URL metadata ── #}
   <div class="result-meta">
     <div class="result-meta__row">
-      <span class="result-meta__key">Scanned URL</span>
+      <span class="result-meta__key">Analysed URL</span>
       <span class="result-meta__val result-meta__url" title="{{ scan.url }}">
         <a href="{{ scan.url }}" target="_blank" rel="noopener noreferrer nofollow">
-          {{ scan.url | truncate(80) }}
+          {{ scan.url | truncate(90) }}
         </a>
+      </span>
+    </div>
+    {% if scan.original_url and scan.original_url != scan.url %}
+    <div class="result-meta__row">
+      <span class="result-meta__key">Original Input</span>
+      <span class="result-meta__val result-meta__url" title="{{ scan.original_url }}">
+        {{ scan.original_url | truncate(90) }}
+      </span>
+    </div>
+    {% endif %}
+    <div class="result-meta__row">
+      <span class="result-meta__key">Input Method</span>
+      <span class="result-meta__val">
+        {% if scan.input_type == 'qr' %}📷 QR Code{% else %}🔗 Direct URL{% endif %}
       </span>
     </div>
     <div class="result-meta__row">
@@ -97,13 +131,288 @@
     </div>
     {% if scan.model_version %}
     <div class="result-meta__row">
-      <span class="result-meta__key">Model Version</span>
+      <span class="result-meta__key">Pipeline Version</span>
       <span class="result-meta__val">{{ scan.model_version }}</span>
     </div>
     {% endif %}
   </div>
 
-</div>
+</div>{# /result-card #}
+
+
+{# ── 2. Analysis Breakdown ── #}
+{% if url_features or ctx or fusion %}
+<section class="analysis-section" aria-label="Detailed analysis breakdown">
+  <h2 class="section-title" style="margin-bottom: var(--space-5);">Analysis Breakdown</h2>
+
+  <div class="analysis-grid">
+
+    {# ── URL Feature Extraction ── #}
+    {% if url_features %}
+    <div class="analysis-card">
+      <h3 class="analysis-card__title">
+        <span class="analysis-card__icon" aria-hidden="true">🔗</span>
+        URL Feature Extraction
+      </h3>
+      <table class="analysis-table">
+        <tbody>
+          <tr>
+            <th scope="row">Domain</th>
+            <td><code>{{ url_features.get('domain', '—') }}</code></td>
+          </tr>
+          {% if url_features.get('subdomain') %}
+          <tr>
+            <th scope="row">Subdomain</th>
+            <td><code>{{ url_features.get('subdomain') }}</code></td>
+          </tr>
+          {% endif %}
+          <tr>
+            <th scope="row">TLD</th>
+            <td>
+              {{ url_features.get('tld', '—') }}
+              {% if url_features.get('has_suspicious_tld') %}
+              <span class="flag-badge flag-badge--warn">Suspicious TLD</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Scheme</th>
+            <td>
+              <code>{{ url_features.get('scheme', '—') }}</code>
+              {% if url_features.get('scheme') == 'http' %}
+              <span class="flag-badge flag-badge--warn">No HTTPS</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">URL Length</th>
+            <td>
+              {{ url_features.get('url_length', '—') }} chars
+              {% if url_features.get('url_length', 0) > 100 %}
+              <span class="flag-badge flag-badge--warn">Long URL</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Domain Entropy</th>
+            <td>
+              {{ url_features.get('domain_entropy', '—') }}
+              {% if url_features.get('domain_entropy', 0) > 3.8 %}
+              <span class="flag-badge flag-badge--warn">High entropy</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Query Parameters</th>
+            <td>{{ url_features.get('num_query_params', 0) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Dots in Host</th>
+            <td>{{ url_features.get('num_dots_in_host', 0) }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Hyphens in Domain</th>
+            <td>{{ url_features.get('num_hyphens_in_domain', 0) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {# Feature flags row #}
+      <div class="flag-row" aria-label="Feature flags">
+        {% set checks = [
+          ('is_ip_address',          '🔴 IP Address Host',        'bad'),
+          ('is_shortener',           '🟡 Link Shortener',         'warn'),
+          ('is_trusted_domain',      '🟢 Trusted Domain',         'good'),
+          ('is_punycode',            '🔴 Punycode / IDN',         'bad'),
+          ('has_brand_in_subdomain', '🔴 Brand in Subdomain',     'bad'),
+          ('has_at_symbol',          '🔴 @ Symbol in URL',        'bad'),
+          ('has_hex_encoding',       '🟡 Hex-encoded Characters', 'warn'),
+          ('has_redirect_in_path',   '🔴 Redirect in Path',       'bad'),
+          ('has_executable_ext',     '🔴 Executable File Link',   'bad'),
+        ] %}
+        {% for key, label, severity in checks %}
+        {% if url_features.get(key) is not none %}
+        <span class="flag-chip flag-chip--{{ severity if url_features.get(key) else 'neutral' }}"
+              aria-label="{{ label }}: {{ 'yes' if url_features.get(key) else 'no' }}">
+          {{ label }}
+          <span class="flag-chip__val">{{ '✓' if url_features.get(key) else '✗' }}</span>
+        </span>
+        {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if url_features.get('suspicious_keywords') %}
+      <div class="keyword-hits" aria-label="Suspicious keyword hits">
+        <p class="keyword-hits__label">Suspicious Keywords Detected:</p>
+        <div class="keyword-hits__list">
+          {% for kw in url_features.get('suspicious_keywords', []) %}
+          <span class="keyword-chip">{{ kw }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>{# /analysis-card url features #}
+    {% endif %}
+
+    {# ── Contextual Analysis ── #}
+    {% if ctx %}
+    <div class="analysis-card">
+      <h3 class="analysis-card__title">
+        <span class="analysis-card__icon" aria-hidden="true">🌐</span>
+        Contextual Analysis
+      </h3>
+      <table class="analysis-table">
+        <tbody>
+          <tr>
+            <th scope="row">Redirects Followed</th>
+            <td>
+              {{ ctx.get('num_redirects', 0) }}
+              {% if ctx.get('num_redirects', 0) > 2 %}
+              <span class="flag-badge flag-badge--warn">Multiple Redirects</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Crosses Domains</th>
+            <td>
+              {% if ctx.get('crosses_domains') %}
+              <span class="flag-badge flag-badge--bad">Yes</span>
+              {% else %}
+              <span class="flag-badge flag-badge--ok">No</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% if ctx.get('redirect_domains') %}
+          <tr>
+            <th scope="row">Redirect Domains</th>
+            <td>
+              {% for d in ctx.get('redirect_domains', []) %}
+              <code class="tag-domain">{{ d }}</code>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endif %}
+          <tr>
+            <th scope="row">Claimed Brand</th>
+            <td>
+              {% if ctx.get('claimed_brand') %}
+                <code>{{ ctx.get('claimed_brand') }}</code>
+                {% if ctx.get('brand_mismatch') %}
+                <span class="flag-badge flag-badge--bad">Mismatch ⚠</span>
+                {% else %}
+                <span class="flag-badge flag-badge--ok">Matches domain</span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">None detected</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">Credential Harvest Path</th>
+            <td>
+              {% if ctx.get('credential_path') %}
+              <span class="flag-badge flag-badge--bad">Detected</span>
+              {% else %}
+              <span class="flag-badge flag-badge--ok">Not detected</span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">HTTP Scheme Risk</th>
+            <td>
+              {% if ctx.get('scheme_risk') %}
+              <span class="flag-badge flag-badge--warn">Unencrypted + sensitive domain</span>
+              {% else %}
+              <span class="flag-badge flag-badge--ok">OK</span>
+              {% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>{# /analysis-card context #}
+    {% endif %}
+
+  </div>{# /analysis-grid #}
+
+  {# ── Feature Fusion ── #}
+  {% if fusion %}
+  <div class="fusion-card">
+    <h3 class="analysis-card__title">
+      <span class="analysis-card__icon" aria-hidden="true">⚖️</span>
+      Feature Fusion &amp; Risk Scoring
+    </h3>
+    <p class="fusion-desc">
+      The final risk score is a weighted combination of the URL structure score
+      ({{ "%.0f"|format(fusion.get('url_weight', 0.55) * 100) }}% weight) and the
+      contextual analysis score ({{ "%.0f"|format(fusion.get('context_weight', 0.45) * 100) }}% weight).
+    </p>
+    <div class="fusion-bars">
+      <div class="fusion-bar-row">
+        <span class="fusion-bar-label">URL Features
+          <small>({{ "%.0f"|format(fusion.get('url_weight', 0.55) * 100) }}% weight)</small>
+        </span>
+        <div class="fusion-bar-track" role="progressbar"
+             aria-valuenow="{{ (fusion.get('url_score', 0) * 100) | int }}"
+             aria-valuemin="0" aria-valuemax="100"
+             aria-label="URL feature score {{ "%.0f"|format(fusion.get('url_score', 0) * 100) }}%">
+          <div class="fusion-bar-fill fusion-bar-fill--url"
+               style="width: {{ "%.1f"|format(fusion.get('url_score', 0) * 100) }}%"></div>
+        </div>
+        <span class="fusion-bar-pct">{{ "%.0f"|format(fusion.get('url_score', 0) * 100) }}%</span>
+      </div>
+      <div class="fusion-bar-row">
+        <span class="fusion-bar-label">Context Score
+          <small>({{ "%.0f"|format(fusion.get('context_weight', 0.45) * 100) }}% weight)</small>
+        </span>
+        <div class="fusion-bar-track" role="progressbar"
+             aria-valuenow="{{ (fusion.get('context_score', 0) * 100) | int }}"
+             aria-valuemin="0" aria-valuemax="100"
+             aria-label="Context score {{ "%.0f"|format(fusion.get('context_score', 0) * 100) }}%">
+          <div class="fusion-bar-fill fusion-bar-fill--ctx"
+               style="width: {{ "%.1f"|format(fusion.get('context_score', 0) * 100) }}%"></div>
+        </div>
+        <span class="fusion-bar-pct">{{ "%.0f"|format(fusion.get('context_score', 0) * 100) }}%</span>
+      </div>
+      <div class="fusion-bar-row fusion-bar-row--total">
+        <span class="fusion-bar-label"><strong>Fused Risk Score</strong></span>
+        <div class="fusion-bar-track" role="progressbar"
+             aria-valuenow="{{ (fusion.get('fused_score', 0) * 100) | int }}"
+             aria-valuemin="0" aria-valuemax="100"
+             aria-label="Final fused risk score {{ "%.0f"|format(fusion.get('fused_score', 0) * 100) }}%">
+          <div class="fusion-bar-fill risk-bar__fill--{{ pred }}"
+               style="width: {{ "%.1f"|format(fusion.get('fused_score', 0) * 100) }}%"></div>
+        </div>
+        <span class="fusion-bar-pct"><strong>{{ "%.0f"|format(fusion.get('fused_score', 0) * 100) }}%</strong></span>
+      </div>
+    </div>
+    <p class="fusion-threshold-note">
+      Thresholds: &lt;35% → <span class="text-safe">Safe</span> &nbsp;|&nbsp;
+      35–65% → <span class="text-suspicious">Suspicious</span> &nbsp;|&nbsp;
+      &gt;65% → <span class="text-malicious">Malicious</span>
+    </p>
+  </div>
+  {% endif %}
+
+  {# ── Redirect chain ── #}
+  {% if redirect_chain %}
+  <div class="analysis-card" style="margin-top: var(--space-5);">
+    <h3 class="analysis-card__title">
+      <span class="analysis-card__icon" aria-hidden="true">↪️</span>
+      Redirect Chain ({{ redirect_chain | length }} hop{{ 's' if redirect_chain | length != 1 else '' }})
+    </h3>
+    <ol class="redirect-chain-list">
+      {% for hop in redirect_chain %}
+      <li class="redirect-chain-list__item">
+        <span class="redirect-chain-list__num">{{ loop.index }}</span>
+        <code class="redirect-chain-list__url">{{ hop | truncate(100) }}</code>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
+</section>
+{% endif %}{# /analysis section #}
 
 {% else %}
 <div class="empty-state">
@@ -114,7 +423,7 @@
 </div>
 {% endif %}
 
-<div class="result-actions">
+<div class="result-actions" style="margin-top: var(--space-6);">
   <a href="{{ url_for('scanner.scan') }}" class="btn btn-primary">🔍 Scan Another URL</a>
   <a href="{{ url_for('scanner.dashboard') }}" class="btn btn-ghost">← Dashboard</a>
   <a href="{{ url_for('scanner.history') }}" class="btn btn-ghost">View History</a>

@@ -5,7 +5,7 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Scan a URL</h1>
-    <p class="page-desc">Enter any URL below to check it for phishing indicators.</p>
+    <p class="page-desc">Enter a URL directly or upload a QR code image to check for phishing indicators.</p>
   </div>
 </div>
 
@@ -18,10 +18,30 @@
   </div>
   {% endif %}
 
-  <form method="POST" action="{{ url_for('scanner.scan') }}" novalidate id="scan-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+  {# ── Input type tabs ── #}
+  <div class="input-tabs" role="tablist" aria-label="Input method">
+    <button class="input-tab {% if input_type != 'qr' %}input-tab--active{% endif %}"
+            id="tab-url" role="tab" aria-controls="panel-url"
+            aria-selected="{{ 'true' if input_type != 'qr' else 'false' }}"
+            data-tab="url" type="button">
+      🔗 Enter URL
+    </button>
+    <button class="input-tab {% if input_type == 'qr' %}input-tab--active{% endif %}"
+            id="tab-qr" role="tab" aria-controls="panel-qr"
+            aria-selected="{{ 'true' if input_type == 'qr' else 'false' }}"
+            data-tab="qr" type="button">
+      📷 Upload QR Code
+    </button>
+  </div>
 
-    <div class="form-field">
+  {# ── URL input panel ── #}
+  <form method="POST" action="{{ url_for('scanner.scan') }}" novalidate id="scan-form-url"
+        role="tabpanel" id="panel-url" aria-labelledby="tab-url"
+        class="tab-panel {% if input_type == 'qr' %}tab-panel--hidden{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="input_type" value="url" />
+
+    <div class="form-field" style="margin-top: var(--space-6);">
       <label class="form-label" for="url">URL to scan</label>
       <p class="form-hint" id="url-hint">
         Include <code>http://</code> or <code>https://</code> — e.g.
@@ -29,19 +49,19 @@
       </p>
       <div class="scan-input-row">
         <input
-          class="form-input form-input--lg {% if error %}input-error{% endif %}"
+          class="form-input form-input--lg {% if error and input_type != 'qr' %}input-error{% endif %}"
           type="url"
           id="url"
           name="url"
-          value="{{ url_val }}"
+          value="{{ url_val if input_type != 'qr' else '' }}"
           placeholder="https://example.com"
           autocomplete="off"
           spellcheck="false"
           aria-describedby="url-hint"
-          required
         />
         <button type="button" class="btn btn-ghost" id="clear-btn"
                 aria-label="Clear URL input"
+                style="display:none"
                 onclick="document.getElementById('url').value=''; this.style.display='none';">
           Clear
         </button>
@@ -49,21 +69,62 @@
     </div>
 
     <div class="scan-actions">
-      <button type="submit" class="btn btn-primary btn-lg" id="scan-btn">
+      <button type="submit" class="btn btn-primary btn-lg" id="scan-btn-url">
         <span class="btn-text">🔍 Scan URL</span>
         <span class="btn-loader hidden" aria-hidden="true"></span>
       </button>
       <a href="{{ url_for('scanner.dashboard') }}" class="btn btn-ghost">← Dashboard</a>
     </div>
-
   </form>
 
-  <div class="scan-info-box">
+  {# ── QR image upload panel ── #}
+  <form method="POST" action="{{ url_for('scanner.scan') }}" novalidate
+        enctype="multipart/form-data" id="scan-form-qr"
+        role="tabpanel" id="panel-qr" aria-labelledby="tab-qr"
+        class="tab-panel {% if input_type != 'qr' %}tab-panel--hidden{% endif %}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="input_type" value="qr" />
+
+    <div class="form-field" style="margin-top: var(--space-6);">
+      <label class="form-label" for="qr_image">QR Code Image</label>
+      <p class="form-hint">Upload a PNG, JPG or GIF containing a QR code that encodes a URL.</p>
+
+      <div class="qr-drop-zone" id="qr-drop-zone" role="button" tabindex="0"
+           aria-label="QR code drop zone — click or drag to upload">
+        <div class="qr-drop-zone__inner" id="qr-preview-area">
+          <span class="qr-drop-zone__icon" aria-hidden="true">📷</span>
+          <p class="qr-drop-zone__text">Drag &amp; drop a QR image here, or <span class="qr-drop-zone__link">browse</span></p>
+          <p class="qr-drop-zone__sub">PNG · JPG · GIF · up to 5 MB</p>
+        </div>
+        <img id="qr-preview-img" class="qr-preview-img hidden" alt="QR code preview" />
+        <input type="file" name="qr_image" id="qr_image"
+               accept="image/png,image/jpeg,image/gif,image/webp"
+               class="qr-file-input"
+               aria-label="Choose QR code image file" />
+      </div>
+
+      <p class="qr-selected-name hidden" id="qr-file-name" aria-live="polite"></p>
+    </div>
+
+    <div class="scan-actions">
+      <button type="submit" class="btn btn-primary btn-lg" id="scan-btn-qr">
+        <span class="btn-text">📷 Decode &amp; Scan QR</span>
+        <span class="btn-loader hidden" aria-hidden="true"></span>
+      </button>
+      <a href="{{ url_for('scanner.dashboard') }}" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </form>
+
+  {# ── How it works ── #}
+  <div class="scan-info-box" style="margin-top: var(--space-8);">
     <h3 class="scan-info-box__title">How it works</h3>
     <ul class="scan-info-box__list">
-      <li>The URL is analysed for phishing characteristics.</li>
-      <li>A risk classification (<strong>Safe</strong>, <strong>Suspicious</strong>,
-          or <strong>Malicious</strong>) is returned with a probability score.</li>
+      <li><strong>Input</strong> — paste a URL directly or upload an image of a QR code.</li>
+      <li><strong>Normalise</strong> — the URL is cleaned: scheme added, tracking params stripped.</li>
+      <li><strong>Redirect resolution</strong> — shortened or redirecting links are followed to their final destination.</li>
+      <li><strong>Feature extraction</strong> — domain entropy, suspicious TLDs, keyword hits, IP hosts, and more are analysed.</li>
+      <li><strong>Contextual analysis</strong> — redirect chains, brand impersonation, and credential-harvesting paths are checked.</li>
+      <li><strong>Risk classification</strong> — features are fused and scored: <strong>Safe</strong>, <strong>Suspicious</strong>, or <strong>Malicious</strong>.</li>
       <li>Results are saved to your history.</li>
     </ul>
   </div>
@@ -73,25 +134,124 @@
 
 {% block scripts %}
 <script>
-  const urlInput = document.getElementById("url");
-  const clearBtn = document.getElementById("clear-btn");
-  const scanForm = document.getElementById("scan-form");
-  const scanBtn  = document.getElementById("scan-btn");
+(function () {
+  "use strict";
 
-  // Show/hide clear button
-  function updateClear() {
-    clearBtn.style.display = urlInput.value ? "inline-flex" : "none";
-  }
-  urlInput.addEventListener("input", updateClear);
-  updateClear();
+  /* ── Tab switching ── */
+  var tabs   = document.querySelectorAll(".input-tab");
+  var panels = document.querySelectorAll(".tab-panel");
 
-  // Loading state on submit
-  scanForm.addEventListener("submit", function (e) {
-    const url = urlInput.value.trim();
-    if (!url) { e.preventDefault(); return; }
-    scanBtn.disabled = true;
-    scanBtn.querySelector(".btn-text").textContent = "Scanning…";
-    scanBtn.querySelector(".btn-loader").classList.remove("hidden");
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      tabs.forEach(function (t) {
+        t.classList.remove("input-tab--active");
+        t.setAttribute("aria-selected", "false");
+      });
+      panels.forEach(function (p) { p.classList.add("tab-panel--hidden"); });
+
+      tab.classList.add("input-tab--active");
+      tab.setAttribute("aria-selected", "true");
+      var targetId = "scan-form-" + tab.dataset.tab;
+      var panel = document.getElementById(targetId);
+      if (panel) panel.classList.remove("tab-panel--hidden");
+    });
   });
+
+  /* ── URL clear button ── */
+  var urlInput = document.getElementById("url");
+  var clearBtn = document.getElementById("clear-btn");
+  if (urlInput && clearBtn) {
+    function updateClear() {
+      clearBtn.style.display = urlInput.value ? "inline-flex" : "none";
+    }
+    urlInput.addEventListener("input", updateClear);
+    updateClear();
+  }
+
+  /* ── URL form submit loader ── */
+  var urlForm = document.getElementById("scan-form-url");
+  var urlBtn  = document.getElementById("scan-btn-url");
+  if (urlForm && urlBtn) {
+    urlForm.addEventListener("submit", function (e) {
+      var val = urlInput ? urlInput.value.trim() : "";
+      if (!val) { e.preventDefault(); return; }
+      urlBtn.disabled = true;
+      var txt = urlBtn.querySelector(".btn-text");
+      var ldr = urlBtn.querySelector(".btn-loader");
+      if (txt) txt.textContent = "Scanning…";
+      if (ldr) ldr.classList.remove("hidden");
+    });
+  }
+
+  /* ── QR drop zone ── */
+  var dropZone   = document.getElementById("qr-drop-zone");
+  var fileInput  = document.getElementById("qr_image");
+  var previewImg = document.getElementById("qr-preview-img");
+  var previewArea= document.getElementById("qr-preview-area");
+  var fileName   = document.getElementById("qr-file-name");
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith("image/")) return;
+    var name = document.getElementById("qr-file-name");
+    if (name) {
+      name.textContent = "Selected: " + file.name;
+      name.classList.remove("hidden");
+    }
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      if (previewImg) {
+        previewImg.src = ev.target.result;
+        previewImg.classList.remove("hidden");
+      }
+      if (previewArea) previewArea.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  if (dropZone && fileInput) {
+    dropZone.addEventListener("click", function (e) {
+      if (e.target !== fileInput) fileInput.click();
+    });
+    dropZone.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") fileInput.click();
+    });
+    fileInput.addEventListener("change", function () {
+      if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+    dropZone.addEventListener("dragover",  function (e) { e.preventDefault(); dropZone.classList.add("qr-drop-zone--over"); });
+    dropZone.addEventListener("dragleave", function ()  { dropZone.classList.remove("qr-drop-zone--over"); });
+    dropZone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      dropZone.classList.remove("qr-drop-zone--over");
+      var dt = e.dataTransfer;
+      if (dt && dt.files && dt.files[0]) {
+        // assign to file input if possible
+        try {
+          var dataTransfer = new DataTransfer();
+          dataTransfer.items.add(dt.files[0]);
+          fileInput.files = dataTransfer.files;
+        } catch (_) {}
+        handleFile(dt.files[0]);
+      }
+    });
+  }
+
+  /* ── QR form submit loader ── */
+  var qrForm = document.getElementById("scan-form-qr");
+  var qrBtn  = document.getElementById("scan-btn-qr");
+  if (qrForm && qrBtn) {
+    qrForm.addEventListener("submit", function (e) {
+      if (!fileInput || !fileInput.files || !fileInput.files.length) {
+        e.preventDefault(); return;
+      }
+      qrBtn.disabled = true;
+      var txt = qrBtn.querySelector(".btn-text");
+      var ldr = qrBtn.querySelector(".btn-loader");
+      if (txt) txt.textContent = "Decoding QR…";
+      if (ldr) ldr.classList.remove("hidden");
+    });
+  }
+
+})();
 </script>
 {% endblock %}
