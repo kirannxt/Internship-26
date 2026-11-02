@@ -37,6 +37,10 @@
 {% set ctx            = details.get('context', {})        if details else {} %}
 {% set fusion         = details.get('fusion', {})         if details else {} %}
 {% set redirect_chain = details.get('redirect_chain', []) if details else [] %}
+{% set engine         = details.get('engine', 'rules')    if details else 'rules' %}
+{% set ml_probs       = details.get('ml_probabilities', {})   if details else {} %}
+{% set ml_fv          = details.get('ml_feature_vector', [])  if details else [] %}
+{% set ml_fn          = details.get('ml_feature_names', [])   if details else [] %}
 
 {# ── 1. Verdict Card ── #}
 <div class="result-card {{ result_class }}" role="region" aria-label="Scan result: {{ result_label }}">
@@ -96,6 +100,41 @@
     </div>
     {% endif %}
   </div>
+
+  {# ── Engine badge ── #}
+  <div class="engine-badge-row">
+    {% if engine == 'ml' %}
+    <span class="engine-badge engine-badge--ml" title="Classified by the trained ML ensemble (Random Forest + XGBoost)">
+      🤖 ML Model Active &nbsp;·&nbsp; {{ scan.model_version }}
+    </span>
+    {% else %}
+    <span class="engine-badge engine-badge--rules" title="ML model not loaded — using rule-based heuristic pipeline">
+      📐 Rule-Based Engine &nbsp;·&nbsp; {{ scan.model_version }}
+    </span>
+    {% endif %}
+  </div>
+
+  {# ── ML per-class probabilities ── #}
+  {% if ml_probs %}
+  <div class="ml-probs-card">
+    <p class="ml-probs-card__title">Per-Class Probabilities (ML Model)</p>
+    <div class="ml-probs-card__bars">
+      {% for cls, colour in [('safe','safe'), ('suspicious','suspicious'), ('malicious','malicious')] %}
+      {% set pct = (ml_probs.get(cls, 0) * 100) %}
+      <div class="ml-prob-row">
+        <span class="ml-prob-label text-{{ colour }}">{{ cls | capitalize }}</span>
+        <div class="ml-prob-track" role="progressbar"
+             aria-valuenow="{{ pct | int }}" aria-valuemin="0" aria-valuemax="100"
+             aria-label="{{ cls }} probability {{ '%.1f' | format(pct) }}%">
+          <div class="ml-prob-fill ml-prob-fill--{{ colour }}"
+               style="width: {{ '%.1f' | format(pct) }}%"></div>
+        </div>
+        <span class="ml-prob-pct">{{ '%.1f' | format(pct) }}%</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   {# ── URL metadata ── #}
   <div class="result-meta">
@@ -408,6 +447,27 @@
       </li>
       {% endfor %}
     </ol>
+  </div>
+  {% endif %}
+
+  {# ── ML Feature Vector ── #}
+  {% if ml_fv and ml_fn %}
+  <div class="analysis-card" style="margin-top: var(--space-5);">
+    <h3 class="analysis-card__title">
+      <span class="analysis-card__icon" aria-hidden="true">🧮</span>
+      ML Feature Vector ({{ ml_fn | length }} features fed to the model)
+    </h3>
+    <div class="ml-fv-grid">
+      {% for i in range(ml_fn | length) %}
+      {% set val = ml_fv[i] if i < ml_fv | length else 0 %}
+      {% set is_flagged = (val > 0 and ml_fn[i] not in ['url_length','hostname_length','path_length','num_dots_in_host','num_hyphens_in_domain','num_subdomains','num_query_params','num_subdirectories','domain_entropy','num_suspicious_keywords'] ) or (ml_fn[i] in ['num_suspicious_keywords','domain_entropy'] and val | float > 1) %}
+      <div class="ml-fv-cell {% if is_flagged %}ml-fv-cell--flagged{% endif %}"
+           title="{{ ml_fn[i] }}: {{ val }}">
+        <span class="ml-fv-cell__name">{{ ml_fn[i] | replace('_', ' ') }}</span>
+        <span class="ml-fv-cell__val">{{ val if val == val | int else '%.3f' | format(val) }}</span>
+      </div>
+      {% endfor %}
+    </div>
   </div>
   {% endif %}
 
