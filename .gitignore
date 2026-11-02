@@ -31,3 +31,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# ML model artefacts (regenerate with: python train_model.py)
+models/*.pkl

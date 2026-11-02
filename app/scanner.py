@@ -22,6 +22,7 @@ from flask import (
 from flask_login import login_required, current_user
 from app import db
 from app.models import ScanHistory, User
+from app.ml_model import predict as ml_predict, is_model_available, FEATURE_NAMES
 
 scanner = Blueprint("scanner", __name__)
 
@@ -62,10 +63,14 @@ TRUSTED_DOMAINS = {
 # ---------------------------------------------------------------------------
 
 URL_RE = re.compile(
-    r"^(https?://)?"                           # optional scheme
-    r"(([a-zA-Z0-9\u00C0-\u024F\-]+\.)+[a-zA-Z]{2,})"  # domain (supports IDN)
-    r"(:\d{1,5})?"                             # optional port
-    r"(/[^\s]*)?$",                            # optional path/query
+    r"^(https?://)?"                                          # optional scheme
+    r"("
+    r"(\d{1,3}\.){3}\d{1,3}"                                 # IPv4 address
+    r"|"
+    r"(([a-zA-Z0-9\u00C0-\u024F\-]+\.)+[a-zA-Z]{2,})"       # domain (supports IDN)
+    r")"
+    r"(:\d{1,5})?"                                            # optional port
+    r"(/[^\s]*)?$",                                           # optional path/query
     re.IGNORECASE,
 )
 
@@ -503,18 +508,79 @@ def _call_external_api(url: str, api_url: str) -> dict | None:
 
 def _perform_scan(url: str) -> tuple[dict | None, str | None]:
     """
-    Run the scan. Returns (result_dict, error_message).
-    Tries external API first; falls back to the full built-in pipeline.
+    Run the full scan pipeline.  Priority order:
+      1. External API  (if SCAN_API_URL is configured)
+      2. ML model      (if models/phishguard_model.pkl exists)
+      3. Rule-based pipeline  (always available as fallback)
+
+    Returns (result_dict, error_message).
     """
+    # ── 1. External API ────────────────────────────────────────────────
     api_url = current_app.config.get("SCAN_API_URL", "").strip()
     if api_url:
         result = _call_external_api(url, api_url)
         if result is None:
             return None, "The detection service is unavailable. Please try again later."
         return result, None
-    else:
-        result = _full_scan_pipeline(url)
-        return result, None
+
+    # ── 2 & 3. Run full rule-based pipeline first (always needed for
+    #           contextual features and redirect resolution, even when
+    #           the ML model is active — the model needs the final URL).
+    pipeline_result = _full_scan_pipeline(url)
+
+    # ── 2. ML model override ────────────────────────────────────────────
+    if is_model_available():
+        final_url = pipeline_result.get("url", url)
+        ml_result = ml_predict(final_url)
+
+        if ml_result is not None:
+            ml_score      = ml_result["probability"]
+            ml_prediction = ml_result["prediction"]
+            url_features  = pipeline_result.get("url_features", {})
+            context       = pipeline_result.get("context", {})
+
+            # ── Hard-boost post-processing (same thresholds as rule engine) ──
+            # Definitive signals override the model's score upward.
+            if url_features.get("is_ip_address") and ml_score < 0.60:
+                ml_score = 0.60
+            if url_features.get("has_brand_in_subdomain") and ml_score < 0.65:
+                ml_score = 0.65
+            if context.get("brand_mismatch") and ml_score < 0.72:
+                ml_score = 0.72
+            if url_features.get("has_executable_ext") and ml_score < 0.78:
+                ml_score = 0.78
+            # Trusted domain cap (no impersonation) — lower the score
+            if url_features.get("is_trusted_domain") and not context.get("brand_mismatch"):
+                ml_score = min(ml_score, 0.25)
+
+            # Re-classify from adjusted score
+            adjusted_prediction, adjusted_risk = _classify_risk(ml_score)
+
+            # Build safety recommendation using final prediction + pipeline signals
+            recommendation = _build_safety_recommendation(
+                adjusted_prediction,
+                url_features,
+                context,
+            )
+
+            # Merge ML prediction into the pipeline result dict
+            pipeline_result.update({
+                "prediction":     adjusted_prediction,
+                "probability":    round(ml_score, 4),
+                "risk_level":     adjusted_risk,
+                "model_version":  ml_result["model_version"],
+                "recommendation": recommendation,
+                # ML-specific extras stored in details_json
+                "ml_probabilities":  ml_result.get("probabilities", {}),
+                "ml_feature_vector": ml_result.get("feature_vector", []),
+                "ml_feature_names":  FEATURE_NAMES,
+                "engine":            "ml",
+            })
+            return pipeline_result, None
+
+    # ── 3. Pure rule-based fallback ─────────────────────────────────────
+    pipeline_result["engine"] = "rules"
+    return pipeline_result, None
 
 
 # ---------------------------------------------------------------------------
@@ -638,10 +704,14 @@ def scan():
                         model_version   = result.get("model_version"),
                         recommendation  = result.get("recommendation", ""),
                         details_json    = json.dumps({
-                            "url_features":   result.get("url_features", {}),
-                            "context":        result.get("context", {}),
-                            "fusion":         result.get("fusion", {}),
-                            "redirect_chain": result.get("redirect_chain", []),
+                            "url_features":      result.get("url_features", {}),
+                            "context":           result.get("context", {}),
+                            "fusion":            result.get("fusion", {}),
+                            "redirect_chain":    result.get("redirect_chain", []),
+                            "engine":            result.get("engine", "rules"),
+                            "ml_probabilities":  result.get("ml_probabilities", {}),
+                            "ml_feature_vector": result.get("ml_feature_vector", []),
+                            "ml_feature_names":  result.get("ml_feature_names", []),
                         }),
                     )
                     db.session.add(scan_record)
@@ -700,7 +770,9 @@ def api_scan():
     if not _is_valid_url(url):
         return jsonify({"error": "invalid url"}), 422
 
-    result = _full_scan_pipeline(url)
+    result, err = _perform_scan(url)
+    if err:
+        return jsonify({"error": err}), 503
     return jsonify(result), 200
 
 
